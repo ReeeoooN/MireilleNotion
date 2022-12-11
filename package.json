@@ -4,7 +4,7 @@
   "description": "",
   "main": "bot.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon bot.js"
   },
   "repository": {
     "type": "git",
@@ -15,5 +15,13 @@
   "bugs": {
     "url": "https://github.com/ReeeoooN/MireilleNotion/issues"
   },
-  "homepage": "https://github.com/ReeeoooN/MireilleNotion#readme"
+  "homepage": "https://github.com/ReeeoooN/MireilleNotion#readme",
+  "dependencies": {
+    "js-joda": "^1.11.0",
+    "mysql2": "^2.3.3",
+    "node-telegram-bot-api": "^0.60.0",
+    "node.date-time": "^1.2.2",
+    "nodemon": "^2.0.20",
+    "sequelize": "^6.26.0"
+  }
 }
