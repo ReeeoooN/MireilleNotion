@@ -10,21 +10,33 @@ function fuck (chatid, err) {
     bot.sendMessage(902064437, `Бро, я сломался ${err}`)
 }
 
-function getNumberOfDays(start, end) { 
-        const date1 = new Date(start); 
-        const date2 = new Date(end); 
- 
- // One day in milliseconds 
-        const oneDay = 1000 * 60 * 60 * 24; 
- 
- // Calculating the time difference between two dates 
-        const diffInTime = date2.getTime() - date1.getTime(); 
- 
- // Calculating the no. of days between two dates 
-        const diffInDays = Math.round(diffInTime / oneDay); 
- 
-        return diffInDays;
-    } 
+function monthBuilder(month, year) {
+    let nextmonth;
+    let nextyear = year
+    if (Number(month) == 12) {
+        nextmonth = 1
+        nextyear = year++
+    } else {
+        nextmonth = Number(month)+1
+    }
+    const dateStart = new Date(`${nextyear}-${month}-1`); 
+    const dateEnd = new Date(`${year}-${nextmonth}-1`);
+    const oneDay = 1000 * 60 * 60 * 24; 
+    const diffInTime = dateEnd.getTime() - dateStart.getTime();
+    const diffInDays = Math.round(diffInTime / oneDay); 
+    console.log(diffInDays);
+    let dayArray = []
+    for (i=0; i<diffInDays; i++) {
+        let day = new Date (`${year}-${month}-${i+1}`)
+        let dayObj = {
+            day: i+1,
+            weekday: day.getDay()
+        }
+
+        console.log(dayObj, i);
+    }
+}
+
 
 async function notecreator(chatid) {
     await bot.sendMessage(chatid, 'Введи название события')
@@ -47,21 +59,6 @@ async function notecreator(chatid) {
             if (res === 'confirmanswer') {
                 deleteBotMessage(chatid)
                 bot.sendMessage(chatid, 'Зафиксировал')
-                let thisYear = new Date().format("Y")
-                let thisMount = new Date().format("M") - 1
-                let nextMount
-                if (thisMount == 12) {
-                    nextMount = 1
-                } else {
-                    nextMount = thisMount + 1
-                }
-                let thisDay = new Date().format("d")
-                let amount = getNumberOfDays(`${thisYear}-${thisMount}-${thisDay}`, `${thisYear}-${nextMount}-2`)
-                let btnArray = []
-                let arrayIndex = 0
-                for (i=0; i<amount; i++) {
-                    
-                }
             }
             if (res === 'notconfirmanswer') {
                 deleteBotMessage(chatid)
@@ -74,3 +71,4 @@ async function notecreator(chatid) {
 
 module.exports.fuck = fuck
 module.exports.notecreator = notecreator
+module.exports.monthBuilder = monthBuilder

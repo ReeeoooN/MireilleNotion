@@ -1,10 +1,13 @@
 const { mainmenu } = require("./botBtn");
 const { bot } = require("./TelegramAPI");
-const { fuck, notecreator } = require('./function');
+const { fuck, notecreator, monthBuilder } = require('./function');
 const { createChatDB, deleteBotMessage } = require("./messdel");
 const { chatModel } = require("./bd");
 
 bot.on('message', async msg=>{
+    let year = new Date().format('Y')
+    let month = new Date().format('M')
+        monthBuilder(month, year)
     if(msg.text === '/start') {
         chatModel.destroy({ // удаление всех записей сообщений из базы данных
             where: {
