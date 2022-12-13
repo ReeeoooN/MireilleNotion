@@ -7,7 +7,7 @@ const { chatModel } = require("./bd");
 bot.on('message', async msg=>{
     let year = new Date().format('Y')
     let month = new Date().format('M')
-        monthBuilder(month, year)
+        monthBuilder(Number(month), Number(year))
     if(msg.text === '/start') {
         chatModel.destroy({ // удаление всех записей сообщений из базы данных
             where: {

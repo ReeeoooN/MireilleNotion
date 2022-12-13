@@ -13,18 +13,17 @@ function fuck (chatid, err) {
 function monthBuilder(month, year) {
     let nextmonth;
     let nextyear = year
-    if (Number(month) == 12) {
+    if (month == 12) {
         nextmonth = 1
-        nextyear = year++
+        nextyear = year+1
     } else {
-        nextmonth = Number(month)+1
+        nextmonth = month+1
     }
-    const dateStart = new Date(`${nextyear}-${month}-1`); 
-    const dateEnd = new Date(`${year}-${nextmonth}-1`);
+    const dateStart = new Date(`${year}-${month}-1`); 
+    const dateEnd = new Date(`${nextyear}-${nextmonth}-1`);
     const oneDay = 1000 * 60 * 60 * 24; 
     const diffInTime = dateEnd.getTime() - dateStart.getTime();
     const diffInDays = Math.round(diffInTime / oneDay); 
-    console.log(diffInDays);
     let dayArray = []
     for (i=0; i<diffInDays; i++) {
         let day = new Date (`${year}-${month}-${i+1}`)
@@ -32,9 +31,32 @@ function monthBuilder(month, year) {
             day: i+1,
             weekday: day.getDay()
         }
-
-        console.log(dayObj, i);
+        dayArray[i] = dayObj
     }
+    let btnArray = []
+    let allMonth =['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+    btnArray[0] = [{text: `${allMonth[month-1]} ${year}`, callback_data: ''}]
+    btnArray[1] = [{text: 'Пн', callback_data: ''}, {text: 'Вт', callback_data: ''},
+    {text: 'Ср', callback_data: ''}, {text: 'Чт', callback_data: ''},
+    {text: 'Пт', callback_data: ''}, {text: 'Сб', callback_data: ''},
+    {text: 'Вс', callback_data: ''}]
+    let x =0;
+    while(x!=diffInDays) {
+        let weekArray = []
+        for (j=x;j<x+7;j++){
+            if (dayArray[j].weekday != j) {
+                console.log(dayArray[j].weekday, j);
+                weekArray[j] = {text: '', callback_data: ''}
+            } else {
+                weekArray[j] = {text: 'j', callback_data: 'j'}
+                console.log(weekArray[j]);
+            }
+        }
+        btnArray.push(weekArray)
+        x=weekArray.length+1
+    }
+    console.log(btnArray);
+        
 }
 
 
