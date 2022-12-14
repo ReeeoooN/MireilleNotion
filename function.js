@@ -31,32 +31,44 @@ function monthBuilder(month, year) {
             day: i+1,
             weekday: day.getDay()
         }
+        if(dayObj.weekday==0){
+            dayObj.weekday=7
+        }
         dayArray[i] = dayObj
     }
+    console.log(dayArray);
     let btnArray = []
     let allMonth =['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
-    btnArray[0] = [{text: `${allMonth[month-1]} ${year}`, callback_data: ''}]
-    btnArray[1] = [{text: 'Пн', callback_data: ''}, {text: 'Вт', callback_data: ''},
-    {text: 'Ср', callback_data: ''}, {text: 'Чт', callback_data: ''},
-    {text: 'Пт', callback_data: ''}, {text: 'Сб', callback_data: ''},
-    {text: 'Вс', callback_data: ''}]
-    let x =0;
-    while(x!=diffInDays) {
-        let weekArray = []
-        for (j=x;j<x+7;j++){
-            if (dayArray[j].weekday != j) {
-                console.log(dayArray[j].weekday, j);
-                weekArray[j] = {text: '', callback_data: ''}
-            } else {
-                weekArray[j] = {text: 'j', callback_data: 'j'}
-                console.log(weekArray[j]);
-            }
-        }
-        btnArray.push(weekArray)
-        x=weekArray.length+1
+    btnArray[0] = [{text: `${allMonth[month-1]} ${year}`, callback_data: 'dick'}]
+    btnArray[1] = [{text: 'Пн', callback_data: 'dick'}, {text: 'Вт', callback_data: 'dick'},
+    {text: 'Ср', callback_data: 'dick'}, {text: 'Чт', callback_data: 'dick'},
+    {text: 'Пт', callback_data: 'dick'}, {text: 'Сб', callback_data: 'dick'},
+    {text: 'Вс', callback_data: 'dick'}]
+    let emptySpace = {day: ' ', weekday:'dick'}
+    let different = 7-dayArray[0].weekday
+    for(i=0; i<different; i++) {
+        dayArray.unshift(emptySpace)
     }
-    console.log(btnArray);
-        
+    different=7-dayArray[dayArray.length-1].weekday
+
+    for(i=0; i<different;i++){
+        dayArray.push(emptySpace)
+    }
+    for(i=0;i<dayArray.length;i=i+7){
+        let transferArray=[]
+        for(j=0;j<7;j++){
+            let transferObject = {text: `${dayArray[i+j].day}`, callback_data: `${dayArray[i+j].day}`}
+            transferArray.push(transferObject)
+        }
+        btnArray.push(transferArray)
+    }
+    btnArray.push([{text: '<', callback_data: 'backmonth'}, {text: 'Назад', callback_data:'start'}, {text: '>', callback_data: 'nextmonth'} ])
+    btn = {
+        reply_markup: JSON.stringify( {
+            inline_keyboard: btnArray
+        })
+    }
+    return btn;
 }
 
 
@@ -81,6 +93,11 @@ async function notecreator(chatid) {
             if (res === 'confirmanswer') {
                 deleteBotMessage(chatid)
                 bot.sendMessage(chatid, 'Зафиксировал')
+                let year = new Date().format('Y')
+                let month = new Date().format('M')
+                   let btn = monthBuilder(Number(month), Number(year))
+                let mess = bot.sendMessage(chatid, 'Выбери день', btn)
+                createChatDB(chatid, mess.message_id)
             }
             if (res === 'notconfirmanswer') {
                 deleteBotMessage(chatid)
