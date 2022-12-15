@@ -54,16 +54,20 @@ function monthBuilder(month, year) {
     for(i=0;i<dayArray.length;i=i+7){
         let transferArray=[]
         for(j=0;j<7;j++){
-            let transferObject = {text: `${dayArray[i+j].day}`, callback_data: `${year}-${month}-${dayArray[i+j].day}`}
+            let transferObject
+            if(dayArray[i+j].day == ' ') {
+                transferObject = {text: `${dayArray[i+j].day}`, callback_data: `dick`}
+            } else {
+                transferObject = {text: `${dayArray[i+j].day}`, callback_data: `${year}-${month}-${dayArray[i+j].day}`}
+            }
+            
             transferArray.push(transferObject)
         }
         btnArray.push(transferArray)
     }
     btnArray.push([{text: '<', callback_data: 'backmonth'}, {text: 'Назад', callback_data:'start'}, {text: '>', callback_data: 'nextmonth'} ])
     btn = {
-        reply_markup: JSON.stringify( {
             inline_keyboard: btnArray
-        })
     }
     return btn;
 }
@@ -93,18 +97,20 @@ async function notecreator(chatid) {
                 deleteBotMessage(chatid)
                 let year = Number(new Date().format('Y'))
                 let month = Number(new Date().format('M'))
-                   let btn = monthBuilder(Number(month), Number(year))
+                   let btn = {reply_markup: JSON.stringify(
+                    monthBuilder(Number(month), Number(year))
+                   )} 
                 let mess = await bot.sendMessage(chatid, 'Выбери день:', btn)
-                console.log(mess.text);
                 createChatDB(chatid, mess.message_id)
                 listener = new Promise (async resolve=>{
                     bot.on('callback_query', async msg =>{
-                        console.log('ddddddd', msg.data);
-                        if ((msg.data !== 'dick' && 'backmonth' && 'nextmonth') && msg.message.chat.id === chatid){
+                        if ((msg.data !== 'dick' && msg.data !== 'backmonth' && msg.data !== 'nextmonth') && msg.message.chat.id === chatid ){
                             resolve({data: msg.data, iventname: res.iventname})
                         }
                         if (msg.data == 'backmonth') {
-                            console.log(month);
+                            btn = monthBuilder(Number(month), Number(year))
+                            console.log(btn);
+                            bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
                         }
                     })
                 }).then(async res=>{
@@ -114,7 +120,7 @@ async function notecreator(chatid) {
                     createChatDB(chatid, mess.message_id)
                     listener = new Promise (async resolve=>{
                         bot.on('callback_query', async msg =>{
-                            if (msg.data !=('dick' || 'backmonth' || 'nextmonth') && msg.message.chat.id === chatid){
+                            if ((msg.data !== 'dick' && msg.data !== 'backhour' && msg.data !== 'nexthour') && msg.message.chat.id === chatid ){
                                 resolve({data: `${res.data}T${msg.data}`, iventname: res.iventname, hour:msg.data})
                             }
                         })
@@ -136,7 +142,7 @@ async function notecreator(chatid) {
                         createChatDB(chatid, mess.message_id)
                         listener = new Promise (async resolve=>{
                             bot.on('callback_query', async msg=>{
-                                if (msg.data !='dick' && msg.message.chat.id === chatid){
+                                if ((msg.data !== 'dick' && msg.data !== 'backmin' && msg.data !== 'nextmin') && msg.message.chat.id === chatid ){
                                     resolve({data: `${res.data}:${msg.data}`, iventname:res.iventname})
                                 }
                             })
