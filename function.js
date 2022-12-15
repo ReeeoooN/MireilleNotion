@@ -1,8 +1,6 @@
-const { confirm } = require("./botBtn")
+const { confirm, getHour, back } = require("./botBtn")
 const { createChatDB, deleteBotMessage } = require("./messdel")
 const { bot } = require("./TelegramAPI")
-const JSJoda = require('js-joda'); 
-const LocalDate = JSJoda.LocalDate;
 const format = require('node.date-time');
 
 function fuck (chatid, err) {
@@ -36,7 +34,6 @@ function monthBuilder(month, year) {
         }
         dayArray[i] = dayObj
     }
-    console.log(dayArray);
     let btnArray = []
     let allMonth =['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
     btnArray[0] = [{text: `${allMonth[month-1]} ${year}`, callback_data: 'dick'}]
@@ -57,7 +54,7 @@ function monthBuilder(month, year) {
     for(i=0;i<dayArray.length;i=i+7){
         let transferArray=[]
         for(j=0;j<7;j++){
-            let transferObject = {text: `${dayArray[i+j].day}`, callback_data: `${dayArray[i+j].day}`}
+            let transferObject = {text: `${dayArray[i+j].day}`, callback_data: `${year}-${month}-${dayArray[i+j].day}`}
             transferArray.push(transferObject)
         }
         btnArray.push(transferArray)
@@ -73,7 +70,8 @@ function monthBuilder(month, year) {
 
 
 async function notecreator(chatid) {
-    await bot.sendMessage(chatid, 'Введи название события')
+    let mess = await bot.sendMessage(chatid, 'Введи название события')
+    createChatDB(chatid, mess.message_id)
     let listener = new Promise (async (resolve, reject)=>{
         bot.on('message', msg=>{
             if (chatid === msg.chat.id) {
@@ -81,27 +79,83 @@ async function notecreator(chatid) {
             }
         })
     }).then(async res=>{
+        deleteBotMessage(chatid)
         let mess = await bot.sendMessage(chatid, `Событие будет называться "${res}"?`, confirm)
         createChatDB(chatid, mess.message_id)
         listener = new Promise (async (resolve, reject)=>{
-            bot.on('callback_query', msg=>{
+            bot.on('callback_query', async msg=>{
                 if (msg.message.chat.id === chatid) {
-                    resolve(msg.data)
+                    resolve({data: msg.data, iventname: res})
                 }
             })
-        }).then(res=>{
-            if (res === 'confirmanswer') {
+        }).then(async res=>{
+            if (res.data === 'confirmanswer') {
                 deleteBotMessage(chatid)
-                bot.sendMessage(chatid, 'Зафиксировал')
-                let year = new Date().format('Y')
-                let month = new Date().format('M')
+                let year = Number(new Date().format('Y'))
+                let month = Number(new Date().format('M'))
                    let btn = monthBuilder(Number(month), Number(year))
-                let mess = bot.sendMessage(chatid, 'Выбери день', btn)
+                let mess = await bot.sendMessage(chatid, 'Выбери день:', btn)
+                console.log(mess.text);
                 createChatDB(chatid, mess.message_id)
+                listener = new Promise (async resolve=>{
+                    bot.on('callback_query', async msg =>{
+                        console.log('ddddddd', msg.data);
+                        if ((msg.data !== 'dick' && 'backmonth' && 'nextmonth') && msg.message.chat.id === chatid){
+                            resolve({data: msg.data, iventname: res.iventname})
+                        }
+                        if (msg.data == 'backmonth') {
+                            console.log(month);
+                        }
+                    })
+                }).then(async res=>{
+                    console.log(res);
+                    deleteBotMessage(chatid)
+                    let mess = await bot.sendMessage(chatid, 'Выбери время:', getHour)
+                    createChatDB(chatid, mess.message_id)
+                    listener = new Promise (async resolve=>{
+                        bot.on('callback_query', async msg =>{
+                            if (msg.data !=('dick' || 'backmonth' || 'nextmonth') && msg.message.chat.id === chatid){
+                                resolve({data: `${res.data}T${msg.data}`, iventname: res.iventname, hour:msg.data})
+                            }
+                        })
+                    }).then(async res=>{
+                        console.log(res);
+                        deleteBotMessage(chatid)
+                         let getMin = {
+                            reply_markup: JSON.stringify({
+                                inline_keyboard: [
+                                    [{text: `${res.hour}:00`, callback_data: '00'}, {text: `${res.hour}:05`, callback_data: '05'}, {text: `${res.hour}:10`, callback_data: '10'},
+                                    {text: `${res.hour}:15`, callback_data: '15'}, {text: `${res.hour}:20`, callback_data: '20'}, {text: `${res.hour}:25`, callback_data: '25'}, ],
+                                    [{text: `${res.hour}:30`, callback_data: '30'}, {text: `${res.hour}:35`, callback_data: '35'}, {text: `${res.hour}:40`, callback_data: '40'},
+                                    {text: `${res.hour}:45`, callback_data: '45'}, {text: `${res.hour}:50`, callback_data: '50'}, {text: `${res.hour}:55`, callback_data: '55'}, ],
+                                ]
+                            })
+                        }
+                    
+                        let mess = await bot.sendMessage(chatid, 'Выбери время:', getMin)
+                        createChatDB(chatid, mess.message_id)
+                        listener = new Promise (async resolve=>{
+                            bot.on('callback_query', async msg=>{
+                                if (msg.data !='dick' && msg.message.chat.id === chatid){
+                                    resolve({data: `${res.data}:${msg.data}`, iventname:res.iventname})
+                                }
+                            })
+                        }).then(res=>{
+                            console.log(res);
+                            console.log(new Date(res.data).format('d.M.Y H:m'));
+                            deleteBotMessage(chatid)
+                            bot.sendMessage(chatid, `Для события "${res.iventname}", было создано напоминание в ${new Date(res.data).format('d.M.Y H:m')}`)
+                        })
+                    })
+                })
             }
-            if (res === 'notconfirmanswer') {
+            if (res.data === 'notconfirmanswer' ) {
                 deleteBotMessage(chatid)
-                notecreator(chatid)
+                if (chatid == 232060407) {
+                   let mess = await bot.sendMessage(chatid, 'Пидора ответ)))0)')
+                   createChatDB(chatid, mess.message_id)
+                }
+                await notecreator(chatid)
             }
         })
     })

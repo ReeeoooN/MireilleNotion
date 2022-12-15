@@ -17,7 +17,6 @@
   },
   "homepage": "https://github.com/ReeeoooN/MireilleNotion#readme",
   "dependencies": {
-    "js-joda": "^1.11.0",
     "mysql2": "^2.3.3",
     "node-telegram-bot-api": "^0.60.0",
     "node.date-time": "^1.2.2",
