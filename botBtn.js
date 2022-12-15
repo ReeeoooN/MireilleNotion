@@ -32,7 +32,7 @@ getHour = {
             {text: '15:00', callback_data: '15'}, {text: '16:00', callback_data: '16'}, {text: '17:00', callback_data: '17'}],
             [{text: '18:00', callback_data: '18'}, {text: '19:00', callback_data: '19'}, {text: '20:00', callback_data: '20'},
             {text: '21:00', callback_data: '21'}, {text: '22:00', callback_data: '22'}, {text: '23:00', callback_data: '23'}],
-            [{text: '<', callback_data: 'backhour'}, {text: 'Назад', callback_data:'start'}, {text: '>', callback_data: 'nexthour'} ]
+            [{text: 'Назад', callback_data:'start'},]
         ]
     })
 }
