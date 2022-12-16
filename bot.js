@@ -13,7 +13,8 @@ bot.on('message', async msg=>{
                 chatid: msg.chat.id
             }
         }) 
-        let mess = await bot.sendMessage(msg.chat.id, `Рады вас видеть в этой бренной вселенной, ${msg.from.first_name}`, mainmenu)
+        await bot.sendMessage(msg.chat.id, `Рады вас видеть в этой бренной вселенной, ${msg.from.first_name}`)
+        let mess = await bot.sendMessage(msg.chat.id, 'Создадим напоминание?', mainmenu)
         createChatDB(msg.chat.id, mess.message_id)
     }
 })
