@@ -1,7 +1,7 @@
 const { chatModel } = require("./bd");
 const { bot } = require("./TelegramAPI");
 function deleteBotMessage (chatid) {
-        chatModel.findOne({where: {chatid: `${chatid}`}, raw: true})
+        chatModel.findOne({where: {chatid: chatid}, raw: true})
         .then(user=>{
             if(!user) {
                 return

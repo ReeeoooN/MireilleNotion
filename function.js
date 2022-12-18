@@ -1,11 +1,47 @@
-const { confirm, getHour, back } = require("./botBtn")
+const { confirm, getHour, getTime, back } = require("./botBtn")
 const { createChatDB, deleteBotMessage } = require("./messdel")
 const { bot } = require("./TelegramAPI")
 const format = require('node.date-time');
+const { usersModel, notesModel, chatModel } = require("./bd");
+const { where } = require("sequelize");
 
 function fuck (chatid, err) {
     bot.sendMessage(chatid, 'Простите, я сломался, разработчик уже в курсе неполадки, вскоре их поправят')
     bot.sendMessage(902064437, `Бро, я сломался ${err}`)
+}
+
+async function regUser(chatid) {
+    let hour = 0; 
+    let mess = await bot.sendMessage(chatid, 'Хочу определить твой часовой пояс. Который час?', getTime)
+    let listener = new Promise ( (resolve, reject)=>{
+        function listener (msg) {
+            if(msg.message.chat.id === chatid && msg.data !== 'start' && msg.data !== 'noteAdd' && msg.data !== 'myNote') {
+                hour = msg.data
+                resolve({hour: hour, chatid: chatid, message: mess.message_id})
+                bot.removeListener('callback_query',listener)
+            } else {
+                reject({chatid: chatid, message:mess.message_id})
+                bot.removeListener('callback_query',listener)
+            }
+        }
+        bot.on('callback_query', listener)
+    }).then(async res=>{
+        bot.deleteMessage(res.chatid, res.message)
+        let date = new Date(`2022-12-12T${res.hour}:00:00`)
+        let differenthour = 1000 * 60 * 60 * 7
+        date = date.getTime() - differenthour
+        let newdate = new Date(date)
+        console.log(date, `19-12-22T${res.hour}:00`, newdate);
+        //usersModel.create({
+            //id: res.chatid,
+          //  timediff: res.hour
+        //})
+        await bot.sendMessage(res.chatid, 'Спасибо, я тебя запомнил, благодаря указанному времени я смогу отправлять тебе уведомления в твоем часовом поясе')
+        let mess = await bot.sendMessage(res.chatid, 'Создадим напоминание?', mainmenu)
+        createChatDB(res.chatid, mess.message_id)
+    }).catch(err=>{
+        bot.editMessageText('Как-то, что-то не то указано, можете попробовать еще раз', {chat_id: err.chatid, message_id: err.message})
+    })
 }
 
 function monthBuilder(month, year) {
@@ -72,150 +108,35 @@ function monthBuilder(month, year) {
     return btn;
 }
 
-
-async function notecreatorold(chatid) {
-    let mess = await bot.sendMessage(chatid, 'Введи название события')
-    createChatDB(chatid, mess.message_id)
-    let listener = new Promise (async (resolve, reject)=>{
-        bot.on('message', msg=>{
-            if (chatid === msg.chat.id && msg.text != '/start') {
-                resolve(msg.text)
-            }
-        })
-    }).then(async res=>{
-        deleteBotMessage(chatid)
-        let mess = await bot.sendMessage(chatid, `Событие будет называться "${res}"?`, confirm)
-        createChatDB(chatid, mess.message_id)
-        listener = new Promise (async (resolve, reject)=>{
-            bot.on('callback_query', async msg=>{
-                if (msg.message.chat.id === chatid) {
-                    resolve({data: msg.data, iventname: res})
-                }
-            })
-        }).then(async res=>{
-            if (res.data === 'confirmanswer') {
-                deleteBotMessage(chatid)
-                let year = Number(new Date().format('Y'))
-                let month = Number(new Date().format('M'))
-                   let btn = {reply_markup: JSON.stringify(
-                    monthBuilder(month, year)
-                   )} 
-                let mess = await bot.sendMessage(chatid, 'Выбери день:', btn)
-                editmess = mess.message_id
-                createChatDB(chatid, mess.message_id)
-                listener = new Promise (async resolve=>{
-                    bot.on('callback_query', async msg =>{
-                        if ((msg.data !== 'dick' && msg.data !== 'backmonth' && msg.data !== 'nextmonth') && msg.message.chat.id === chatid ){
-                            resolve({data: msg.data, iventname: res.iventname})
-                        }
-                        if (msg.data == 'backmonth') {
-                            if(month == 1) {
-                                month = 12
-                                year--
-                            } else {
-                                month--
-                            }
-                            btn = monthBuilder(month, year)
-                            bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
-                        }
-                        if (msg.data === 'nextmonth') {
-                            if (month == 12) {
-                                month = 1
-                                year++ 
-                            } else {
-                                month ++
-                            }
-                            btn = monthBuilder(month, year)
-                            bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: editmess})
-                        }
-                    })
-                }).then(async res=>{
-                    if(res.data!= 'start') {
-                        console.log(res);
-                    deleteBotMessage(chatid)
-                    let mess = await bot.sendMessage(chatid, 'Выбери время:', getHour)
-                    createChatDB(chatid, mess.message_id)
-                    listener = new Promise (async resolve=>{
-                        bot.on('callback_query', async msg =>{
-                            if ((msg.data !== 'dick' && msg.data !== 'backhour' && msg.data !== 'nexthour') && msg.message.chat.id === chatid ){
-                                resolve({data: res.data, iventname: res.iventname, hour:msg.data})
-                            }
-                        })
-                    }).then(async res=>{
-                        console.log(Number(res.hour));
-                        if(res.hour!='start'){
-                            console.log(res);
-                        deleteBotMessage(chatid)
-                         let getMin = {
-                            reply_markup: JSON.stringify({
-                                inline_keyboard: [
-                                    [{text: `${res.hour}:00`, callback_data: '00'}, {text: `${res.hour}:05`, callback_data: '05'}, {text: `${res.hour}:10`, callback_data: '10'},
-                                    {text: `${res.hour}:15`, callback_data: '15'}, {text: `${res.hour}:20`, callback_data: '20'}, {text: `${res.hour}:25`, callback_data: '25'}, ],
-                                    [{text: `${res.hour}:30`, callback_data: '30'}, {text: `${res.hour}:35`, callback_data: '35'}, {text: `${res.hour}:40`, callback_data: '40'},
-                                    {text: `${res.hour}:45`, callback_data: '45'}, {text: `${res.hour}:50`, callback_data: '50'}, {text: `${res.hour}:55`, callback_data: '55'}, ],
-                                    [{text: 'Назад', callback_data:'start'},]
-                                ]
-                            })
-                        }
-                    
-                        let mess = await bot.sendMessage(chatid, 'Выбери время:', getMin)
-                        createChatDB(chatid, mess.message_id)
-                        listener = new Promise (async resolve=>{
-                            bot.on('callback_query', async msg=>{
-                                if ((msg.data !== 'dick' && msg.data !== 'backmin' && msg.data !== 'nextmin') && msg.message.chat.id === chatid ){
-                                    resolve({data: res.data, iventname:res.iventname, hour: res.hour, min: msg.data})
-                                }
-                            })
-                        }).then(res=>{
-                            if (res.min != 'start') {
-                                console.log(res);
-                            console.log(new Date(`${res.data}T${res.hour}:${res.min}`).format('d.M.Y H:m'));
-                            deleteBotMessage(chatid)
-                            bot.sendMessage(chatid, `Для события "${res.iventname}", было создано напоминание ${new Date(`${res.data}T${res.hour}:${res.min}`).format('d.M.Y')} в ${new Date(`${res.data}T${res.hour}:${res.min}`).format('H:m')}`)
-                            }
-                        })
-                        }
-                    })
-                    }
-                })
-            }
-            if (res.data === 'notconfirmanswer' ) {
-                deleteBotMessage(chatid)
-                if (chatid == 232060407) {
-                   let mess = await bot.sendMessage(chatid, 'Пидора ответ)))0)')
-                   createChatDB(chatid, mess.message_id)
-                }
-                await notecreator(chatid)
-            }
-        })
-    })
-        
-}
-
 async function notecreator(chatid) {
     let mess = await bot.sendMessage(chatid, 'Введи название события')
-    createChatDB(chatid, mess.message_id)
     let listener = new Promise (async (resolve, reject)=>{
-        bot.on('message', async msg=>{
+        function list (msg) {
             if (chatid === msg.chat.id && msg.text != '/start') {
                 resolve(msg.text)
+                bot.removeListener('message', list)
             } else {
                 reject('Ты ввел команду, можешь попробовать еще раз')
+                bot.removeListener('message', list)
             }
-        })
+        }
+        bot.on('message', list)
     }).then(async res=>{
         deleteBotMessage(chatid)
         let mess = await bot.sendMessage(chatid, `Событие будет называться "${res}"?`, confirm)
         createChatDB(chatid, mess.message_id)
         listener = new Promise (async (resolve, reject)=>{
-            bot.on('callback_query', async msg=>{
+            function list (msg){
                 if (msg.data == 'confirmanswer' && msg.message.chat.id === chatid) {
                     resolve(res)
+                    bot.removeListener('message', list)
                 }
                 if (msg.data == 'start') {
                     reject('back')
+                    bot.removeListener('message', list)
                 }
-            })
+            }
+            bot.on('callback_query', list)
         }).then(async res=>{
             deleteBotMessage(chatid)
             let year = Number(new Date().format('Y'))
@@ -224,58 +145,163 @@ async function notecreator(chatid) {
                     monthBuilder(month, year)
                    )} 
                 let mess = await bot.sendMessage(chatid, 'Укажи дату:', btn)
-                let note = {date: 0, hour: 0, min: 0, eventName: res}
+                let note = {date: 0, hour: 0, min: 0, eventName: res, chatid: chatid, message: mess.message_id}
                 listener = new Promise (async(resolve, reject)=>{
-                    bot.on('callback_query', async msg=>{
-                        if (note.date === 0 && msg.message.chat.id === chatid) {
-                            if (msg.data !== 'dick' && msg.data !== 'backmonth' && msg.data !== 'nextmonth' && msg.data !== 'start' && msg.data !== 'noteAdd' && msg.data !== 'myNote') {
-                                note.date = msg.data
-                                let newBtn = []
-                                newBtn.push([{text: `${new Date(note.date).format('d.M.Y')}`, callback_data: 'dick' }])
-                                newBtn.push([{text: '00:00', callback_data: '00'}, {text: '01:00', callback_data: '01'}, {text: '02:00', callback_data: '02'},
-                                {text: '03:00', callback_data: '03'}, {text: '04:00', callback_data: '04'}, {text: '05:00', callback_data: '05'}])
-                                newBtn.push([{text: '06:00', callback_data: '06'}, {text: '07:00', callback_data: '07'}, {text: '08:00', callback_data: '08'},
-                                {text: '09:00', callback_data: '09'}, {text: '10:00', callback_data: '10'}, {text: '11:00', callback_data: '11'}])
-                                newBtn.push([{text: '12:00', callback_data: '12'}, {text: '13:00', callback_data: '13'}, {text: '14:00', callback_data: '14'},
-                                {text: '15:00', callback_data: '15'}, {text: '16:00', callback_data: '16'}, {text: '17:00', callback_data: '17'}])
-                                newBtn.push([{text: '18:00', callback_data: '18'}, {text: '19:00', callback_data: '19'}, {text: '20:00', callback_data: '20'},
-                                {text: '21:00', callback_data: '21'}, {text: '22:00', callback_data: '22'}, {text: '23:00', callback_data: '23'}])
-                                newBtn.push([{text: '<', callback_data: 'hourback'},{text: 'Назад', callback_data:'back'},{text: '>', callback_data: 'hournext'}])
-                                btn = {
-                                    inline_keyboard: newBtn
+                    function list (msg){
+                        if(msg.message.chat.id === chatid && msg.data !== 'dick' && msg.data !== 'noteAdd' && msg.data !== 'myNote' && msg.data !== 'start' ) {
+                            if (note.date === 0) {
+                                if (msg.data !== 'backmonth' && msg.data !== 'nextmonth' ) {
+                                    note.date = msg.data
+                                    let newBtn = [[{text: `${new Date(note.date).format('d.M.Y')}`, callback_data: 'dick' }]]
+                                    for (i=0; i<getHour.length; i++){
+                                        newBtn.push(getHour[i])
+                                    }
+                                    btn = {
+                                        inline_keyboard: newBtn
+                                    }
+                                    bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
+                                } else if (msg.data === 'backmonth') {
+                                    if(month == 1) {
+                                        month = 12
+                                        year--
+                                    } else {
+                                        month--
+                                    }
+                                    btn = monthBuilder(month, year)
+                                    bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
+                                } else if (msg.data === 'nextmonth') {
+                                    if (month == 12) {
+                                        month = 1
+                                        year++ 
+                                    } else {
+                                        month ++
+                                    }
+                                    btn = monthBuilder(month, year)
+                                    bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
                                 }
-                                bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
-                            } else if (msg.data === 'backmonth') {
-                                if(month == 1) {
-                                    month = 12
-                                    year--
-                                } else {
-                                    month--
+                            } else if (note.hour === 0) {
+                                if (msg.data !== "hourback" && msg.data !== 'hournext' && msg.data !== 'back') {
+                                    note.hour = msg.data
+                                    let newBtn = [[{text: `${new Date(note.date).format('d.M.Y')} время ${note.hour}:`, callback_data: 'dick' }]]
+                                    let getmin = [
+                                        [{text: `${note.hour}:00`, callback_data: '00'}, {text: `${note.hour}:05`, callback_data: '05'}, {text: `${note.hour}:10`, callback_data: '10'},
+                                        {text: `${note.hour}:15`, callback_data: '15'}, {text: `${note.hour}:20`, callback_data: '20'}, {text: `${note.hour}:25`, callback_data: '25'}, ],
+                                        [{text: `${note.hour}:30`, callback_data: '30'}, {text: `${note.hour}:35`, callback_data: '35'}, {text: `${note.hour}:40`, callback_data: '40'},
+                                        {text: `${note.hour}:45`, callback_data: '45'}, {text: `${note.hour}:50`, callback_data: '50'}, {text: `${note.hour}:55`, callback_data: '55'}, ],
+                                        [{text: '<', callback_data: 'minback'}, {text: 'Назад', callback_data:'start'}, {text: '>', callback_data: 'minnext'}]
+                                    ]
+                                    for (i=0; i<getmin.length; i++){
+                                        newBtn.push(getmin[i])
+                                    }
+                                    btn = {
+                                        inline_keyboard: newBtn
+                                    }
+                                    bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
+                                } else if (msg.data === "hourback") {
+                                    const oneDay = 1000 * 60 * 60 * 24; 
+                                    note.date = new Date(note.date).getTime() - oneDay
+                                    note.date = new Date(note.date).format('Y-M-d')
+                                    let backday = [[{text: `${new Date(note.date).format('d.M.Y')}`, callback_data: 'dick' }]]
+                                    for (i=0; i<getHour.length; i++){
+                                        backday.push(getHour[i])
+                                    }
+                                    btn = {
+                                        inline_keyboard: backday
+                                    }
+                                    bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
+                                } else if (msg.data === "hournext") {
+                                    const oneDay = 1000 * 60 * 60 * 24; 
+                                    note.date = new Date(note.date).getTime() + oneDay
+                                    note.date = new Date(note.date).format('Y-M-d')
+                                    let backday = [[{text: `${new Date(note.date).format('d.M.Y')}`, callback_data: 'dick' }]]
+                                    for (i=0; i<getHour.length; i++){
+                                        backday.push(getHour[i])
+                                    }
+                                    btn = {
+                                        inline_keyboard: backday
+                                    }
+                                    bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
+                                } else if (msg.data === 'back') {
+                                    note.date = 0
+                                    let year = Number(new Date().format('Y'))
+                                    let month = Number(new Date().format('M'))
+                                    btn = monthBuilder(month, year)
+                                    bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
                                 }
-                                btn = monthBuilder(month, year)
-                                bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
-                            } else if (msg.data === 'nextmonth') {
-                                if (month == 12) {
-                                    month = 1
-                                    year++ 
-                                } else {
-                                    month ++
+                            } else if (note.min === 0) {
+                                if (msg.data !== "minback" && msg.data !== 'minnext' && msg.data !== 'back') {
+                                    note.min = msg.data
+                                    resolve(note)
+                                    bot.removeListener('message', list)
+                                } else if (msg.data === "minback") {
+                                    note.hour--
+                                    let newBtn = [[{text: `${new Date(note.date).format('d.M.Y')} время ${note.hour}:`, callback_data: 'dick' }]]
+                                    let getmin = [
+                                        [{text: `${note.hour}:00`, callback_data: '00'}, {text: `${note.hour}:05`, callback_data: '05'}, {text: `${note.hour}:10`, callback_data: '10'},
+                                        {text: `${note.hour}:15`, callback_data: '15'}, {text: `${note.hour}:20`, callback_data: '20'}, {text: `${note.hour}:25`, callback_data: '25'}, ],
+                                        [{text: `${note.hour}:30`, callback_data: '30'}, {text: `${note.hour}:35`, callback_data: '35'}, {text: `${note.hour}:40`, callback_data: '40'},
+                                        {text: `${note.hour}:45`, callback_data: '45'}, {text: `${note.hour}:50`, callback_data: '50'}, {text: `${note.hour}:55`, callback_data: '55'}, ],
+                                        [{text: '<', callback_data: 'minback'}, {text: 'Назад', callback_data:'start'}, {text: '>', callback_data: 'minnext'}]
+                                    ]
+                                    for (i=0; i<getmin.length; i++){
+                                        newBtn.push(getmin[i])
+                                    }
+                                    btn = {
+                                        inline_keyboard: newBtn
+                                    }
+                                    bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
+                                } else if (msg.data === "minnext") {
+                                    note.hour++
+                                    let newBtn = [[{text: `${new Date(note.date).format('d.M.Y')} время ${note.hour}:`, callback_data: 'dick' }]]
+                                    let getmin = [
+                                        [{text: `${note.hour}:00`, callback_data: '00'}, {text: `${note.hour}:05`, callback_data: '05'}, {text: `${note.hour}:10`, callback_data: '10'},
+                                        {text: `${note.hour}:15`, callback_data: '15'}, {text: `${note.hour}:20`, callback_data: '20'}, {text: `${note.hour}:25`, callback_data: '25'}, ],
+                                        [{text: `${note.hour}:30`, callback_data: '30'}, {text: `${note.hour}:35`, callback_data: '35'}, {text: `${note.hour}:40`, callback_data: '40'},
+                                        {text: `${note.hour}:45`, callback_data: '45'}, {text: `${note.hour}:50`, callback_data: '50'}, {text: `${note.hour}:55`, callback_data: '55'}, ],
+                                        [{text: '<', callback_data: 'minback'}, {text: 'Назад', callback_data:'back'}, {text: '>', callback_data: 'minnext'}]
+                                    ]
+                                    for (i=0; i<getmin.length; i++){
+                                        newBtn.push(getmin[i])
+                                    }
+                                    btn = {
+                                        inline_keyboard: newBtn
+                                    }
+                                    bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
+                                } else if (msg.data === "back") {
+                                    note.hour = 0
+                                    let newBtn = [[{text: `${new Date(note.date).format('d.M.Y')}`, callback_data: 'dick' }]]
+                                    for (i=0; i<getHour.length; i++){
+                                        newBtn.push(getHour[i])
+                                    }
+                                    btn = {
+                                        inline_keyboard: newBtn
+                                    }
+                                    bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
                                 }
-                                btn = monthBuilder(month, year)
-                                bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: editmess})
-                            } else if (msg.data === 'start') {
-                                reject(mess)
-                            } else {
-                                reject(mess)
                             }
-                        } else if (note.hour === 0 && msg.message.chat.id === chatid && msg.data !== 'dick' && msg.data !== 'noteAdd' && msg.data !== 'myNote') {
-
-                        } else if (note.min === 0 && msg.message.chat.id === chatid && msg.data !== 'dick' && msg.data !== 'noteAdd' && msg.data !== 'myNote') {
-
+                        } else if (msg.data === 'start') {
+                            reject({chatid:chatid,message:mess.message_id})
+                            bot.removeListener('message', list)
+                        } else if (msg.data !== 'dick') {
+                            reject(mess)
+                            bot.removeListener('message', list)
                         }
+                    }
+                    bot.on('callback_query', list)
+                }).then (async res=>{
+                    bot.deleteMessage(res.chatid, res.message)
+                    bot.sendMessage(res.chatid, `Напомню про "${res.eventName}" ${new Date(res.date).format('d.M.Y')} в ${res.hour}:${res.min}`)
+                    let mess = await bot.sendMessage(res.chatid, 'Уведомление создано.', back)
+                    createChatDB(res.chatid, mess.message_id)
+                    let user = await usersModel.findOne({where:{id:res.chatid}, raw:true})
+                    res.hour = res.hour - user.timediff
+                    notesModel.create({
+                        chatid: res.chatid,
+                        notedate: `${res.date} ${res.hour}:${res.min}:00`,
+                        notename: res.eventName
                     })
                 }).catch(err=>{
-                    bot.editMessageText('Меню закрыто', {chat_id: chatid, message_id: err.message_id})
+                    bot.deleteMessage(err.chatid, err.message)
                 })
         }).catch (err=>{
             
@@ -285,6 +311,58 @@ async function notecreator(chatid) {
     }) 
 }
 
+async function selectNotes (chatid) {
+    deleteBotMessage(chatid)
+    res = await notesModel.findAll({where:{chatid:chatid}, raw:true})
+    if(res.length > 0) {
+        let user = await usersModel.findOne({where:{id: res[0].chatid}, raw:true})
+        for(i=0;i<res.length;i++) {
+            let delBtn = {
+                reply_markup: JSON.stringify( {
+                    inline_keyboard: [
+                        [{text: 'Удалить', callback_data: `${res[i].id}`}],
+                    ]
+                })
+            }
+            let date = new Date(res[i].notedate)
+            date = date.setHours(date.getHours()+user.timediff)
+            let mess = await bot.sendMessage(res[i].chatid, `Уведомление "${res[i].notename}" - ${new Date(date).format('d.M.Y h:m')}`, delBtn) 
+            createChatDB(res[i].chatid, mess.message_id)
+        }
+        let mess = await bot.sendMessage(res[0].chatid, 'Это были все уведомления', back)
+        createChatDB(res[0].chatid, mess.message_id)
+        function listener (msg) {
+            console.log(msg.data);
+            if(msg.message.chat.id === res[0].chatid && msg.data !== 'noteAdd' && msg.data !== 'myNote' && msg.data !== 'start' ){
+                chatModel.destroy({where:{messageid: msg.message.message_id}})
+                bot.editMessageText('Уведомление было удалено', {chat_id: res[0].chatid, message_id: msg.message.message_id})
+                notesModel.destroy({where:{id: msg.data}})
+            }
+            if(msg.message.chat.id === res[0].chatid && (msg.data === 'start' || msg.data === 'noteAdd' || msg.data === 'myNote')) {
+                bot.removeListener('callback_query', listener)
+                if (msg.data !== 'start') {
+                    chatModel.findAll({where:{chatid:chatid}}).then(res=>{
+                        if (res.length > 0) {
+                           for(i=0;i<res.length;i++){
+                            bot.deleteMessage(res[i].chatid,res[i].messageid)
+                            chatModel.destroy({where:{messageid: res[i].messageid}})
+                           }
+                        }
+                    })
+                }
+            }
+        }
+        bot.on('callback_query', listener)
+    } else {
+        let mess = await bot.sendMessage(chatid, 'Уведомлений нет', back)
+        createChatDB(chatid, mess.message_id)
+    }
+}
+
+
+
+module.exports.selectNotes =selectNotes
+module.exports.regUser = regUser
 module.exports.fuck = fuck
 module.exports.notecreator = notecreator
 module.exports.monthBuilder = monthBuilder
