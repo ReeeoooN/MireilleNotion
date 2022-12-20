@@ -20,9 +20,7 @@ confirmBtn = {
         ]
     })
 }
-getTime = {
-    reply_markup: JSON.stringify( {
-        inline_keyboard: [
+getTime =  [
             [{text: '00:00-00:59', callback_data: '00'}, {text: '01:00-01:59', callback_data: '01'}, {text: '02:00-02:59', callback_data: '02'}],
             [{text: '03:00-03:59', callback_data: '03'}, {text: '04:00-04:59', callback_data: '04'}, {text: '05:00-05:59', callback_data: '05'}],
             [{text: '06:00-06:59', callback_data: '06'}, {text: '07:00-07:59', callback_data: '07'}, {text: '08:00-08:59', callback_data: '08'}],
@@ -32,8 +30,7 @@ getTime = {
             [{text: '18:00-18:59', callback_data: '18'}, {text: '19:00-19:59', callback_data: '19'}, {text: '20:00-20:59', callback_data: '20'}],
             [{text: '21:00-21:59', callback_data: '21'}, {text: '22:00-22:59', callback_data: '22'}, {text: '23:00-23:59', callback_data: '23'}]
         ]
-    })
-} 
+
 
 getHour =  [
             [{text: '00:00', callback_data: '00'}, {text: '01:00', callback_data: '01'}, {text: '02:00', callback_data: '02'},

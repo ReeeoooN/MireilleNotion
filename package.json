@@ -17,6 +17,8 @@
   },
   "homepage": "https://github.com/ReeeoooN/MireilleNotion#readme",
   "dependencies": {
+    "moment": "^2.29.4",
+    "moment-timezone": "^0.5.40",
     "mysql2": "^2.3.3",
     "node-telegram-bot-api": "^0.60.0",
     "node.date-time": "^1.2.2",
