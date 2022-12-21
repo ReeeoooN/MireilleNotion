@@ -1,10 +1,20 @@
 mainmenu = {
     reply_markup: JSON.stringify({
         inline_keyboard: [
-            [{text: 'Создать уведомление', callback_data: 'noteAdd'}, {text: 'Мои уведомления', callback_data: 'myNote'}]
+            [{text: 'Создать уведомление', callback_data: 'noteAdd'}, {text: 'Ежедневное уведомление', callback_data: 'myEdNote'}],
+            [{text: 'Мои уведомления', callback_data: 'myNote'}, {text: 'Инфо', callback_data: 'myinfo'}]
         ]
     })
 }
+infoMenu = {
+    reply_markup: JSON.stringify({
+        inline_keyboard: [
+            [{text: 'Сменить часовой пояс', callback_data: 'timediffEdit'}, {text: 'Задонатить', callback_data: 'donate'}],
+            [{text: 'Назад', callback_data: 'start'}],
+        ]
+    })
+}
+
 back = {
     reply_markup: JSON.stringify( {
         inline_keyboard: [
@@ -43,7 +53,8 @@ getHour =  [
             {text: '21:00', callback_data: '21'}, {text: '22:00', callback_data: '22'}, {text: '23:00', callback_data: '23'}],
             [{text: '<', callback_data: 'hourback'},{text: 'Назад', callback_data:'back'},{text: '>', callback_data: 'hournext'}]
         ]
- 
+
+module.exports.infoMenu =infoMenu
 module.exports.getHour = getHour
 module.exports.mainmenu = mainmenu
 module.exports.back = back
