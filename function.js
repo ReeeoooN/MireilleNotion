@@ -540,11 +540,10 @@ async function selectNotes (chatid) {
     notesModel.findAll({where:{chatid:chatid}, raw:true}).then(async res=>{
         if (res.length>0) {
             async function listener(msg) {
-                console.log(msg.data);
                 if(msg.message.chat.id === res[0].chatid && msg.data !== 'noteAdd' && msg.data !== 'myNote' && msg.data !== 'start' ){
                     chatModel.destroy({where:{messageid: msg.message.message_id}})
                     bot.editMessageText('Уведомление было удалено', {chat_id: res[0].chatid, message_id: msg.message.message_id})
-                    notesModel.destroy({where:{chatid: msg.message.chat.id}})
+                    notesModel.destroy({where:{id: msg.data}})
                 }
                 if(msg.message.chat.id === res[0].chatid && (msg.data === 'start' || msg.data === 'noteAdd' || msg.data === 'myNote' || msg.data === 'myinfo' || msg.data === 'myEdNote')) {
                     bot.removeListener('callback_query', listener)

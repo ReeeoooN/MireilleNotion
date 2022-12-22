@@ -66,22 +66,38 @@ bot.on('callback_query', async msg=>{
     
 })
 
-var notesArray = []
-
 async function giveNotes() {
+    var notesArray = []
     let notes = await notesModel.findAll({raw:true})
     if (notes.length>0){
         let date = new Date()
         date = new Date(date).setHours(new Date(date).getHours()+1)
+        date= new Date(date).getTime()
         console.log(new Date(date).format('Y-M-d H:m'));
-        for (i=0; i>notes.length; i++){
-            if (new Date(notes[i].notedate).getHours()>new Date(date).getHours()){
-                
-                notes.push(notes[i])
+        for (i=0; i<notes.length; i++){
+            if (new Date(notes[i].notedate).getTime()<date){
+                notesArray.push(notes[i])
             }
-            console.log(new Date(notes[i].notedate).getHours(), new Date(date).getHours());
         }
-        console.log(notes);
+        function sendNotes (notesArray) {
+            for (i=0;i<notesArray.length;i++){
+                let date = new Date().setSeconds(0)
+                date = new Date(date).setMilliseconds(0)
+                date = new Date(date).getTime
+                if (new Date(notes[i].notedate).getTime()==date){
+                    bot.sendMessage(notesArray[i].chatid, `Напоминаю о событии "${notesArray[i].notename}"`)
+                    if (notesArray[i].everyday == 1) {
+                        notesArray[i].notedate = new Date(notesArray[i].notedate).setDate(new Date(notesArray[i].notedate).setDate()+1)
+                        notesModel.update({notedate:notesArray[i].notedate}, {where:{id:notesArray[i].id}})
+                    } else {
+                        notesArray.destroy({where:{id:notesArray[i].id}})
+                    }
+                }
+            }
+        }
+        setInterval(sendNotes, 60000, notesArray)
     }
+    
 }
 giveNotes()
+setInterval(giveNotes, 3600000)
