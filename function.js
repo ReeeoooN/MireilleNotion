@@ -99,7 +99,7 @@ async function regUser(chatid) {
                     }
                 } 
             } else if (msg.data === 'start') {
-                bot.removeListener('message', listener)
+                bot.removeListener('callback_query', listener)
                 reject({chatid:chatid,message:mess.message_id})
             }
         }
@@ -203,7 +203,7 @@ async function notecreator(chatid){
                     resolve(note)
                 }
                 if (msg.data == 'start') {
-                    bot.removeListener('message', nameConfirm)
+                    bot.removeListener('callback_query', nameConfirm)
                     chatModel.destroy({where:{messageid: mess.message_id}})
                     reject({chatid: note.chatid, message: mess.message_id})
                 }
@@ -312,7 +312,7 @@ async function notecreator(chatid){
                                     notename: note.eventName,
                                     everyday: false
                                 })
-                                bot.removeListener('message', dateBuilder)
+                                bot.removeListener('callback_query', dateBuilder)
                                 resolve(note)
                             } else if (msg.data === "minback") {
                                 note.hour--
@@ -361,7 +361,7 @@ async function notecreator(chatid){
                             }
                         }
                     } else if (msg.data === 'start') {
-                        bot.removeListener('message', dateBuilder)
+                        bot.removeListener('callback_query', dateBuilder)
                         reject({chatid:chatid,message:mess.message_id})
                     }
                 }
@@ -411,7 +411,7 @@ async function noteEdCreator(chatid) {
                     bot.removeListener('callback_query', nameConfirm)
                     let btn = []
                     for (i=0; i<getHour.length; i++){
-                        btn.push(getHour[i])
+                        btn.push(getHourfored[i])
                     }
                     btn = {reply_markup: JSON.stringify({
                         inline_keyboard: btn
@@ -419,7 +419,7 @@ async function noteEdCreator(chatid) {
                     resolve({note: note, btn: btn})
                 }
                 if (msg.data == 'start') {
-                    bot.removeListener('message', nameConfirm)
+                    bot.removeListener('callback_query', nameConfirm)
                     chatModel.destroy({where:{messageid: mess.message_id}})
                     reject({chatid: note.chatid, message: mess.message_id})
                 }
@@ -465,7 +465,7 @@ async function noteEdCreator(chatid) {
                                     notename: note.eventName,
                                     everyday: true
                                 })
-                                bot.removeListener('message', dateBuilder)
+                                bot.removeListener('callback_query', dateBuilder)
                                 resolve(note)
                             } else if (msg.data === "minback") {
                                 note.hour--
@@ -514,7 +514,7 @@ async function noteEdCreator(chatid) {
                             }
                         }
                     } else if (msg.data === 'start') {
-                        bot.removeListener('message', dateBuilder)
+                        bot.removeListener('callback_query', dateBuilder)
                         reject({chatid:chatid,message:mess.message_id})
                     }
                 }
@@ -594,7 +594,7 @@ async function editTimediff (chatid) {
     
     let mess = await bot.sendMessage(chatid, 'Хочу изменить твой часовой пояс. укажи дату', btn)
     let regDate = new Promise ( (resolve, reject)=>{
-        async function listener (msg) {
+        async function changedate (msg) {
             if(msg.message.chat.id === chatid && msg.data !== 'dick' && msg.data !== 'noteAdd' && msg.data !== 'myNote' && msg.data !== 'start' && msg.data !== 'myEdNote' && msg.data !== 'myinfo') {
                 if (note.date === 0) {
                     if (msg.data !== 'backmonth' && msg.data !== 'nextmonth' ) {
@@ -637,6 +637,7 @@ async function editTimediff (chatid) {
                         let datediff = (userDate - serverDate)/60/60/1000
                         usersModel.update({timediff: datediff}, {where:{id: note.chatid}})
                         bot.editMessageText('Спасибо, данные изменил', {chat_id: chatid, message_id:mess.message_id})
+                        bot.removeListener('callback_query', changedate)
                         resolve(note.chatid)
                     } else if (msg.data === "hourback") {
                         const oneDay = 1000 * 60 * 60 * 24; 
@@ -671,16 +672,16 @@ async function editTimediff (chatid) {
                     }
                 } 
             } else if (msg.data === 'start') {
-                bot.removeListener('message', listener)
+                bot.removeListener('callback_query', changedate)
                 reject({chatid:chatid,message:mess.message_id})
             }
         }
-        bot.on('callback_query', listener)
+        bot.on('callback_query', changedate)
     }).then(async res=>{
         let mess = await bot.sendMessage(res, 'Создадим напоминание?', mainmenu)
         createChatDB(res, mess.message_id)
     }).catch(err=>{
-        bot.editMessageText('Как-то, что-то не то указано, можете попробовать еще раз', {chat_id: err.chatid, message_id: err.message})
+        bot.editMessageText('Возвращаемся в главное меню', {chat_id: err.chatid, message_id: err.message})
     })
 }
 
