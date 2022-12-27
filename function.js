@@ -9,6 +9,20 @@ function fuck (chatid, err) {
     bot.sendMessage(902064437, `Бро, я сломался ${err}`)
 }
 
+async function giveNotes() {
+    let notesArray = []
+    let date = new Date()
+        date = new Date(date).setHours(new Date(date).getHours()+1)
+        date= new Date(date).getTime()
+    let query = await notesModel.findAll({raw:true})
+    for (i=0;i<query.length;i++) {
+        if (new Date(query[i].notedate).getTime()<date&&new Date(query[i].notedate)>new Date().getTime()) {
+            notesArray.push(query[i])
+        }
+    }
+    return notesArray
+}
+
 async function regUser(chatid) {
     let note = {date: 0, hour:0, chatid:chatid}
     let year = Number(new Date().format('Y'))
@@ -108,7 +122,7 @@ async function regUser(chatid) {
         let mess = await bot.sendMessage(res, 'Создадим напоминание?', mainmenu)
         createChatDB(res, mess.message_id)
     }).catch(err=>{
-        bot.editMessageText('Как-то, что-то не то указано, можете попробовать еще раз', {chat_id: err.chatid, message_id: err.message})
+        bot.editMessageText('Без указания даты я не смогу отправлять уведомления в твоем часовом поясе. Ты можешь попробовать еще раз по команде /start', {chat_id: err.chatid, message_id: err.message})
     })
 }
 
@@ -306,7 +320,7 @@ async function notecreator(chatid){
                                 bot.editMessageText(`Напомню про "${note.eventName}" ${new Date(note.date).format('d.M.Y')} в ${note.hour}:${note.min}`, {chat_id:note.chatid,message_id:note.message})
                                 let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
                                 note.hour = Number(note.hour) + user.timediff
-                                notesModel.create({
+                                await notesModel.create({
                                     chatid: note.chatid,
                                     notedate: `${note.date} ${note.hour}:${note.min}:00`,
                                     notename: note.eventName,
@@ -367,8 +381,10 @@ async function notecreator(chatid){
                 }
                 bot.on('callback_query', dateBuilder)
             }).then(async note=>{
+                let res = await giveNotes()
                 let mess = await bot.sendMessage(note.chatid, 'Уведомление создано.', back)
                 createChatDB(note.chatid, mess.message_id)
+                return res
             }).catch(err=>{
                 bot.editMessageText('Ты вернулся в главное меню', {chat_id: err.chatid, message_id:err.message})
             })
@@ -459,7 +475,7 @@ async function noteEdCreator(chatid) {
                                 bot.editMessageText(`Напомню про "${note.eventName}" в ${note.hour}:${note.min}.`, {chat_id:note.chatid,message_id:note.message})
                                 let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
                                 note.hour = Number(note.hour) + user.timediff
-                                notesModel.create({
+                                await notesModel.create({
                                     chatid: note.chatid,
                                     notedate: `${note.date} ${note.hour}:${note.min}:00`,
                                     notename: note.eventName,
@@ -520,8 +536,10 @@ async function noteEdCreator(chatid) {
                 }
                 bot.on('callback_query', dateBuilder)
             }).then(async note=>{
+                let res = await giveNotes()
                 let mess = await bot.sendMessage(note.chatid, 'Уведомление создано.', back)
                 createChatDB(note.chatid, mess.message_id)
+                return res
             }).catch(err=>{
                 bot.editMessageText('Ты вернулся в главное меню', {chat_id: err.chatid, message_id:err.message})
             })
@@ -693,3 +711,4 @@ module.exports.regUser = regUser
 module.exports.fuck = fuck
 module.exports.notecreator = notecreator
 module.exports.monthBuilder = monthBuilder
+module.exports.giveNotes = giveNotes

@@ -1,8 +1,10 @@
 const { mainmenu, infoMenu, back } = require("./botBtn");
 const { bot } = require("./TelegramAPI");
-const { fuck, notecreator, regUser, selectNotes, noteEdCreator, editTimediff } = require('./function');
+const { fuck, notecreator, regUser, selectNotes, noteEdCreator, editTimediff, giveNotes} = require('./function');
 const { createChatDB, deleteBotMessage } = require("./messdel");
 const { chatModel, usersModel, notesModel } = require("./bd");
+var notesArray =[]
+
 bot.setMyCommands( [
     {command: '/start', description: 'Начать'}
 ]) // Стандартные команды
@@ -28,14 +30,15 @@ bot.on('message', async msg=>{
 bot.on('callback_query', async msg=>{
     if (msg.data == 'noteAdd') {
         deleteBotMessage(msg.message.chat.id)
-        notecreator(msg.message.chat.id)
+        notesArray = await notecreator(msg.message.chat.id)
     }
     if (msg.data === 'myNote') {
         selectNotes(msg.message.chat.id)
     }
     if (msg.data === 'myEdNote') {
         deleteBotMessage(msg.message.chat.id)
-        noteEdCreator(msg.message.chat.id)
+        notesArray = await noteEdCreator(msg.message.chat.id)
+        await console.log(notesArray);
     }
     if (msg.data === 'myinfo') {
         deleteBotMessage(msg.message.chat.id)
@@ -66,38 +69,9 @@ bot.on('callback_query', async msg=>{
     
 })
 
-async function giveNotes() {
-    var notesArray = []
-    let notes = await notesModel.findAll({raw:true})
-    if (notes.length>0){
-        let date = new Date()
-        date = new Date(date).setHours(new Date(date).getHours()+1)
-        date= new Date(date).getTime()
-        console.log(new Date(date).format('Y-M-d H:m'));
-        for (i=0; i<notes.length; i++){
-            if (new Date(notes[i].notedate).getTime()<date){
-                notesArray.push(notes[i])
-            }
-        }
-        function sendNotes (notesArray) {
-            for (i=0;i<notesArray.length;i++){
-                let date = new Date().setSeconds(0)
-                date = new Date(date).setMilliseconds(0)
-                date = new Date(date).getTime
-                if (new Date(notes[i].notedate).getTime()==date){
-                    bot.sendMessage(notesArray[i].chatid, `Напоминаю о событии "${notesArray[i].notename}"`)
-                    if (notesArray[i].everyday == 1) {
-                        notesArray[i].notedate = new Date(notesArray[i].notedate).setDate(new Date(notesArray[i].notedate).setDate()+1)
-                        notesModel.update({notedate:notesArray[i].notedate}, {where:{id:notesArray[i].id}})
-                    } else {
-                        notesArray.destroy({where:{id:notesArray[i].id}})
-                    }
-                }
-            }
-        }
-        setInterval(sendNotes, 60000, notesArray)
-    }
-    
+
+async function arrayTransfer(){
+    notesArray = await giveNotes()
 }
-giveNotes()
-setInterval(giveNotes, 3600000)
+arrayTransfer()
+notesArray = setInterval(arrayTransfer, 3600000)
