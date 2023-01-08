@@ -1,9 +1,8 @@
 const { mainmenu, infoMenu, back } = require("./botBtn");
 const { bot } = require("./TelegramAPI");
-const { fuck, notecreator, regUser, selectNotes, noteEdCreator, editTimediff, giveNotes} = require('./function');
+const { fuck, notecreator, regUser, selectNotes, noteEdCreator, editTimediff} = require('./function');
 const { createChatDB, deleteBotMessage } = require("./messdel");
 const { chatModel, usersModel, notesModel } = require("./bd");
-var notesArray =[]
 
 bot.setMyCommands( [
     {command: '/start', description: 'Начать'}
@@ -30,15 +29,15 @@ bot.on('message', async msg=>{
 bot.on('callback_query', async msg=>{
     if (msg.data == 'noteAdd') {
         deleteBotMessage(msg.message.chat.id)
-        notesArray = await notecreator(msg.message.chat.id)
+        notecreator(msg.message.chat.id)
     }
     if (msg.data === 'myNote') {
         selectNotes(msg.message.chat.id)
     }
     if (msg.data === 'myEdNote') {
         deleteBotMessage(msg.message.chat.id)
-        notesArray = await noteEdCreator(msg.message.chat.id)
-        await console.log(notesArray);
+        noteEdCreator(msg.message.chat.id)
+
     }
     if (msg.data === 'myinfo') {
         deleteBotMessage(msg.message.chat.id)
@@ -69,9 +68,25 @@ bot.on('callback_query', async msg=>{
     
 })
 
-
-async function arrayTransfer(){
-    notesArray = await giveNotes()
+async function notesSender(){ 
+    let serverTime = new Date ().setSeconds(00)
+    serverTime = new Date (serverTime).setMilliseconds(00)
+    serverTime = new Date (serverTime).getTime()
+    let notesArray = await notesModel.findAll({raw:true})
+    for (i=0;i<notesArray.length;i++){
+        let noteTime = new Date (notesArray[i].notedate).getTime()
+        if (serverTime == noteTime) {
+            bot.sendMessage(notesArray[i].chatid, `Йо, не забудь про "${notesArray[i].notename}"!`)
+            if (notesArray[i].everyday == 1) {
+                let notedate = new Date(notesArray[i].notedate)
+                notedate.setDate(notedate.getDate()+1)
+                notedate.setSeconds(00)
+                notesModel.update({notedate: new Date(notedate).format('Y-M-d H:m')}, {where: {id:notesArray[i].id}})
+            } else {
+                notesModel.destroy({where:{id:notesArray[i].id}})
+            }
+        }
+    }
 }
-arrayTransfer()
-notesArray = setInterval(arrayTransfer, 3600000)
+notesSender()
+setInterval(notesSender, 300000)

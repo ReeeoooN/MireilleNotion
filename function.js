@@ -1,4 +1,4 @@
-const { confirm, getHour, getTime, back } = require("./botBtn")
+const { confirm, getHour, getTime, back, replyBack, mainmenu } = require("./botBtn")
 const { createChatDB, deleteBotMessage } = require("./messdel")
 const { bot } = require("./TelegramAPI")
 const format = require('node.date-time');
@@ -9,19 +9,7 @@ function fuck (chatid, err) {
     bot.sendMessage(902064437, `Бро, я сломался ${err}`)
 }
 
-async function giveNotes() {
-    let notesArray = []
-    let date = new Date()
-        date = new Date(date).setHours(new Date(date).getHours()+1)
-        date= new Date(date).getTime()
-    let query = await notesModel.findAll({raw:true})
-    for (i=0;i<query.length;i++) {
-        if (new Date(query[i].notedate).getTime()<date&&new Date(query[i].notedate)>new Date().getTime()) {
-            notesArray.push(query[i])
-        }
-    }
-    return notesArray
-}
+
 
 async function regUser(chatid) {
     let note = {date: 0, hour:0, chatid:chatid}
@@ -33,7 +21,7 @@ async function regUser(chatid) {
     
     let mess = await bot.sendMessage(chatid, 'Хочу определить твой часовой пояс. укажи дату', btn)
     let regDate = new Promise ( (resolve, reject)=>{
-        async function listener (msg) {
+        async function regEvent (msg) {
             if(msg.message.chat.id === chatid && msg.data !== 'dick' && msg.data !== 'noteAdd' && msg.data !== 'myNote' && msg.data !== 'start' && msg.data !== 'myEdNote' && msg.data !== 'myinfo') {
                 if (note.date === 0) {
                     if (msg.data !== 'backmonth' && msg.data !== 'nextmonth' ) {
@@ -117,7 +105,7 @@ async function regUser(chatid) {
                 reject({chatid:chatid,message:mess.message_id})
             }
         }
-        bot.on('callback_query', listener)
+        bot.on('callback_query', regEvent)
     }).then(async res=>{
         let mess = await bot.sendMessage(res, 'Создадим напоминание?', mainmenu)
         createChatDB(res, mess.message_id)
@@ -191,18 +179,20 @@ function monthBuilder(month, year) {
 }
 
 async function notecreator(chatid){
-    let mess = await bot.sendMessage(chatid, 'Введи название события')
+    let mess = await bot.sendMessage(chatid, 'Введи название события', replyBack)
     createChatDB(chatid, mess.message_id)
     let note = {date: 0, hour: 0, min: 0, eventName: 0, chatid: chatid, message: 0}
     let eventName = new Promise((resolve, reject) => {
         async function giveName (msg) {
-            if (msg.text !== '/start' && msg.chat.id === chatid) {
+            console.log(msg);
+            if ((msg.text !== '/start' && msg.chat.id === chatid) && (msg.text !== 'Назад' && msg.chat.id === chatid)) {
                 note.eventName = msg.text
                 bot.removeListener('message', giveName)
                 resolve(note)
                 
-            } else if (msg.text === '/start' && msg.chat.id === chatid) {
-                reject({chatid: chatid, message:  mess.message_id})
+            } else if ((msg.text === '/start' && msg.chat.id === chatid) || (msg.text === 'Назад' && msg.chat.id === chatid)) {
+                bot.removeListener('message', giveName)
+                reject({chatid: chatid, message:  mess.message_id, text: msg.text})
             }
         }
         bot.on('message', giveName)
@@ -319,7 +309,7 @@ async function notecreator(chatid){
                                 note.min = msg.data
                                 bot.editMessageText(`Напомню про "${note.eventName}" ${new Date(note.date).format('d.M.Y')} в ${note.hour}:${note.min}`, {chat_id:note.chatid,message_id:note.message})
                                 let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
-                                note.hour = Number(note.hour) + user.timediff
+                                note.hour = Number(note.hour) - user.timediff
                                 await notesModel.create({
                                     chatid: note.chatid,
                                     notedate: `${note.date} ${note.hour}:${note.min}:00`,
@@ -381,10 +371,8 @@ async function notecreator(chatid){
                 }
                 bot.on('callback_query', dateBuilder)
             }).then(async note=>{
-                let res = await giveNotes()
                 let mess = await bot.sendMessage(note.chatid, 'Уведомление создано.', back)
                 createChatDB(note.chatid, mess.message_id)
-                return res
             }).catch(err=>{
                 bot.editMessageText('Ты вернулся в главное меню', {chat_id: err.chatid, message_id:err.message})
             })
@@ -393,27 +381,32 @@ async function notecreator(chatid){
         })
 
     }).catch(err=>{
-        chatModel.destroy({where:{messageid: err.message}})
-        bot.editMessageText('Команда не может быть названием', {chat_id: err.chatid, message_id: err.message})
+        if (err.text !== 'Назад') {
+            chatModel.destroy({where:{messageid: err.message}})
+            bot.editMessageText('Команда не может быть названием', {chat_id: err.chatid, message_id: err.message})
+        } else {
+            bot.sendMessage(err.chatid, 'Ты вернулся в главное меню', mainmenu)
+        }
     })
 
 
 }
 
 async function noteEdCreator(chatid) {
-    let mess = await bot.sendMessage(chatid, 'Введи название события')
+    let mess = await bot.sendMessage(chatid, 'Введи название события', replyBack)
     createChatDB(chatid, mess.message_id)
     let note = { hour: 0, min: 0, eventName: 0, chatid: chatid, message: 0}
     note.date = new Date().format('Y-M-d')
     let eventName = new Promise((resolve, reject) => {
         async function giveName (msg) {
-            if (msg.text !== '/start' && msg.chat.id === chatid) {
+            if ((msg.text !== '/start' && msg.chat.id === chatid) && (msg.text !== 'Назад' && msg.chat.id === chatid)) {
                 note.eventName = msg.text
                 bot.removeListener('message', giveName)
                 resolve(note)
                 
-            } else if (msg.text === '/start' && msg.chat.id === chatid) {
-                reject({chatid: chatid, message:  mess.message_id})
+            } else if ((msg.text === '/start' && msg.chat.id === chatid) || (msg.text === 'Назад' && msg.chat.id === chatid)) {
+                bot.removeListener('message', giveName)
+                reject({chatid: chatid, message:  mess.message_id, text: msg.text})
             }
         }
         bot.on('message', giveName)
@@ -474,7 +467,7 @@ async function noteEdCreator(chatid) {
                                 }
                                 bot.editMessageText(`Напомню про "${note.eventName}" в ${note.hour}:${note.min}.`, {chat_id:note.chatid,message_id:note.message})
                                 let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
-                                note.hour = Number(note.hour) + user.timediff
+                                note.hour = Number(note.hour) - user.timediff
                                 await notesModel.create({
                                     chatid: note.chatid,
                                     notedate: `${note.date} ${note.hour}:${note.min}:00`,
@@ -536,10 +529,8 @@ async function noteEdCreator(chatid) {
                 }
                 bot.on('callback_query', dateBuilder)
             }).then(async note=>{
-                let res = await giveNotes()
                 let mess = await bot.sendMessage(note.chatid, 'Уведомление создано.', back)
                 createChatDB(note.chatid, mess.message_id)
-                return res
             }).catch(err=>{
                 bot.editMessageText('Ты вернулся в главное меню', {chat_id: err.chatid, message_id:err.message})
             })
@@ -548,8 +539,12 @@ async function noteEdCreator(chatid) {
         })
 
     }).catch(err=>{
-        chatModel.destroy({where:{messageid: err.message}})
-        bot.editMessageText('Команда не может быть названием', {chat_id: err.chatid, message_id: err.message})
+        if (err.text !== 'Назад') {
+            chatModel.destroy({where:{messageid: err.message}})
+            bot.editMessageText('Команда не может быть названием', {chat_id: err.chatid, message_id: err.message})
+        } else {
+            bot.sendMessage(err.chatid, 'Ты вернулся в главное меню', mainmenu)
+        }
     })
 }
 
@@ -558,10 +553,42 @@ async function selectNotes (chatid) {
     notesModel.findAll({where:{chatid:chatid}, raw:true}).then(async res=>{
         if (res.length>0) {
             async function listener(msg) {
-                if(msg.message.chat.id === res[0].chatid && msg.data !== 'noteAdd' && msg.data !== 'myNote' && msg.data !== 'start' ){
+                if(msg.message.chat.id === res[0].chatid && msg.data !== 'noteAdd' && msg.data !== 'myNote' && msg.data !== 'start' && msg.data.indexOf('del-')!== 1 ){
+                    let index = 0
+                    for (i=0;i<res.length;i++){
+                        if (msg.data.slice(4) == res[i].id) {
+                            index = i
+                            break
+                        }
+                    }
                     chatModel.destroy({where:{messageid: msg.message.message_id}})
-                    bot.editMessageText('Уведомление было удалено', {chat_id: res[0].chatid, message_id: msg.message.message_id})
-                    notesModel.destroy({where:{id: msg.data}})
+                    bot.editMessageText(`Уведомление "${res[index].notename}" было удалено`, {chat_id: res[0].chatid, message_id: msg.message.message_id})
+                    notesModel.destroy({where:{id: msg.data.slice(4)}})
+                }
+                if(msg.message.chat.id === res[0].chatid && msg.data !== 'noteAdd' && msg.data !== 'myNote' && msg.data !== 'start' && msg.data.indexOf('ed-')!== 1 ){
+                    let index = 0
+                    for (i=0;i<res.length;i++){
+                        if (msg.data.slice(3) == res[i].id) {
+                            index = i
+                            break
+                        }
+                    }
+                    chatModel.destroy({where:{messageid: msg.message.message_id}})
+                    chatModel.findAll({where:{chatid:chatid}}).then(res=>{
+                        if (res.length > 0) {
+                           for(i=0;i<res.length;i++){
+                            bot.deleteMessage(res[i].chatid,res[i].messageid)
+                            chatModel.destroy({where:{messageid: res[i].messageid}})
+                           }
+                        }
+                    })
+                    bot.removeListener('callback_query', listener)
+                    if (res[index].everyday = 1) {
+                        bot.editMessageText('В разработке', {chat_id: res[0].chatid, message_id: msg.message.message_id})
+                    } else {
+                        bot.editMessageText('В разработке', {chat_id: res[0].chatid, message_id: msg.message.message_id})
+                    }
+                    console.log(res);
                 }
                 if(msg.message.chat.id === res[0].chatid && (msg.data === 'start' || msg.data === 'noteAdd' || msg.data === 'myNote' || msg.data === 'myinfo' || msg.data === 'myEdNote')) {
                     bot.removeListener('callback_query', listener)
@@ -583,14 +610,19 @@ async function selectNotes (chatid) {
                 let delBtn = {
                     reply_markup: JSON.stringify( {
                         inline_keyboard: [
-                            [{text: 'Удалить', callback_data: `${res[i].id}`}],
+                            [{text: 'Удалить', callback_data: `del-${res[i].id}`}, {text: 'Редактировать', callback_data: `ed-${res[i].id}`}],
                         ]
                     })
                 }
                 let date = new Date(res[i].notedate)
                 date = date.setHours(date.getHours()+user.timediff)
-                let mess = await bot.sendMessage(res[i].chatid, `Уведомление "${res[i].notename}" - ${new Date(date).format('d.M.Y h:m')}`, delBtn) 
-                createChatDB(res[i].chatid, mess.message_id)
+                if (res[i].everyday = 1) {
+                    let mess = await bot.sendMessage(res[i].chatid, `Ежедневное уведомление "${res[i].notename}" - ${new Date(date).format('d.M.Y h:m')}`, delBtn) 
+                    createChatDB(res[i].chatid, mess.message_id)
+                } else {
+                    let mess = await bot.sendMessage(res[i].chatid, `Уведомление "${res[i].notename}" - ${new Date(date).format('d.M.Y h:m')}`, delBtn) 
+                    createChatDB(res[i].chatid, mess.message_id)
+                }
             }
             let mess = await bot.sendMessage(res[0].chatid, 'Это были все уведомления', back)
             createChatDB(res[0].chatid, mess.message_id)
@@ -647,13 +679,13 @@ async function editTimediff (chatid) {
                 } else if (note.hour === 0) {
                     if (msg.data !== "hourback" && msg.data !== 'hournext' && msg.data !== 'back') {
                         note.hour = msg.data
-                        let userDate = new Date(`${note.date}T${note.hour}:00`).getTime()
+                        let userDate = new Date(`${note.date} ${note.hour}:00`).getTime()
                         let serverDate = new Date().getTime()
                         serverDate = new Date(serverDate).setMinutes(00)
                         serverDate = new Date(serverDate).setSeconds(00)
                         serverDate = new Date(serverDate).setMilliseconds(0)
                         let datediff = (userDate - serverDate)/60/60/1000
-                        usersModel.update({timediff: datediff}, {where:{id: note.chatid}})
+                        usersModel.update({timediff: datediff}, {where:{id: chatid}})
                         bot.editMessageText('Спасибо, данные изменил', {chat_id: chatid, message_id:mess.message_id})
                         bot.removeListener('callback_query', changedate)
                         resolve(note.chatid)
@@ -711,4 +743,3 @@ module.exports.regUser = regUser
 module.exports.fuck = fuck
 module.exports.notecreator = notecreator
 module.exports.monthBuilder = monthBuilder
-module.exports.giveNotes = giveNotes

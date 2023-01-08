@@ -23,6 +23,15 @@ back = {
     })
 } 
 
+replyBack = {
+    reply_markup: JSON.stringify( {
+        keyboard: [
+            [{text: 'Назад'}],
+        ],
+        resize_keyboard: true
+    })
+} 
+
 confirmBtn = {
     reply_markup: JSON.stringify({
         inline_keyboard: [
@@ -73,3 +82,4 @@ module.exports.mainmenu = mainmenu
 module.exports.back = back
 module.exports.confirm = confirmBtn
 module.exports.getTime = getTime
+module.exports.replyBack = replyBack
