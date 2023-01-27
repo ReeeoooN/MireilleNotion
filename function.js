@@ -180,6 +180,7 @@ function monthBuilder(month, year) {
 }
 
 async function notecreator(chatid){
+    
     let mess = await bot.sendMessage(chatid, 'Введи название события', replyBack)
     createChatDB(chatid, mess.message_id)
     let note = {date: 0, hour: 0, min: 0, eventName: 0, chatid: chatid, message: 0}
@@ -309,7 +310,10 @@ async function notecreator(chatid){
                                 note.min = msg.data
                                 bot.editMessageText(`Напомню про "${note.eventName}" ${new Date(note.date).format('d.M.Y')} в ${note.hour}:${note.min}`, {chat_id:note.chatid,message_id:note.message})
                                 let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
-                                note.hour = Number(note.hour) - user.timediff
+                                let date = new Date().setHours(note.hour)
+                                date = new Date(date).setHours(new Date(date).getHours()-user.timediff)
+                                note.hour = new Date(date).getHours()
+                                console.log(note.hour);
                                 await notesModel.create({
                                     chatid: note.chatid,
                                     notedate: `${note.date} ${note.hour}:${note.min}:00`,
@@ -371,7 +375,7 @@ async function notecreator(chatid){
                 }
                 bot.on('callback_query', dateBuilder)
             }).then(async note=>{
-                let mess = await bot.sendMessage(note.chatid, 'Уведомление создано.', back)
+                let mess = await bot.sendMessage(note.chatid, 'Уведомление создано.', mainmenu)
                 createChatDB(note.chatid, mess.message_id)
             }).catch(err=>{
                 bot.editMessageText('Ты вернулся в главное меню', {chat_id: err.chatid, message_id:err.message})
@@ -380,12 +384,14 @@ async function notecreator(chatid){
             bot.editMessageText('Ты вернулся в главное меню', {chat_id: err.chatid, message_id:err.message})
         })
 
-    }).catch(err=>{
+    }).catch(async err=>{
         if (err.text !== 'Назад') {
             chatModel.destroy({where:{messageid: err.message}})
             bot.editMessageText('Команда не может быть названием', {chat_id: err.chatid, message_id: err.message})
         } else {
-            bot.sendMessage(err.chatid, 'Ты вернулся в главное меню', mainmenu)
+            let mess = await bot.sendMessage(err.chatid, 'Ты вернулся в главное меню', mainmenu)
+            createChatDB(err.chatid, mess.message_id)
+            console.log(mess);
         }
     })
 
@@ -470,7 +476,9 @@ async function noteEdCreator(chatid) {
                                 }
                                 bot.editMessageText(`Напомню про "${note.eventName}" в ${note.hour}:${note.min}.`, {chat_id:note.chatid,message_id:note.message})
                                 let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
-                                note.hour = Number(note.hour) - user.timediff
+                                let date = new Date().setHours(note.hour)
+                                date = new Date(date).setHours(new Date(date).getHours()-user.timediff)
+                                note.hour = new Date(date).getHours()
                                 await notesModel.create({
                                     chatid: note.chatid,
                                     notedate: `${note.date} ${note.hour}:${note.min}:00`,
@@ -532,7 +540,7 @@ async function noteEdCreator(chatid) {
                 }
                 bot.on('callback_query', dateBuilder)
             }).then(async note=>{
-                let mess = await bot.sendMessage(note.chatid, 'Уведомление создано.', back)
+                let mess = await bot.sendMessage(note.chatid, 'Уведомление создано.', mainmenu)
                 createChatDB(note.chatid, mess.message_id)
             }).catch(err=>{
                 bot.editMessageText('Ты вернулся в главное меню', {chat_id: err.chatid, message_id:err.message})
@@ -660,7 +668,7 @@ async function editNotesdate (note) {
                 }
             } else if (note.min === 0) {
                 if (msg.data !== "minback" && msg.data !== 'minnext' && msg.data !== 'back') {
-                    await bot.removeListener('callback_query', dateBuilder) //хули не работаем
+                    await bot.removeListener('callback_query', dateBuilder)
                     note.min = msg.data
                     if (note.everyday = 1){
                         let noteDate = new Date (note.date)
@@ -674,11 +682,13 @@ async function editNotesdate (note) {
                         }
                     }
                     bot.deleteMessage(chatid, note.mess)
-                    bot.sendMessage(note.chatid, `Напомню ${new Date(note.date).format('d.M.Y')} в ${note.hour}:${note.min}`)
+                    await bot.sendMessage(note.chatid, `Напомню ${new Date(note.date).format('d.M.Y')} в ${note.hour}:${note.min}`)
                     let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
-                    note.hour = Number(note.hour) - user.timediff
+                    let date = new Date().setHours(note.hour)
+                    date = new Date(date).setHours(new Date(date).getHours()-user.timediff)
+                    note.hour = new Date(date).getHour()
                     await notesModel.update({notedate: `${note.date} ${note.hour}:${note.min}:00`}, {where:{id: note.id}})
-                    let mess = await bot.sendMessage(chatid, 'Уведомление изменено.', back)
+                    let mess = await bot.sendMessage(chatid, 'Уведомление изменено.', mainmenu)
                     createChatDB(chatid, mess.message_id)
                     note = 0
                     
@@ -761,8 +771,8 @@ async function selectNotes (chatid) {
                             break
                         }
                     }
-                    chatModel.destroy({where:{messageid: msg.message.message_id}})
-                    chatModel.findAll({where:{chatid:chatid}}).then(res=>{
+                    await chatModel.destroy({where:{messageid: msg.message.message_id}})
+                    await chatModel.findAll({where:{chatid:chatid}}).then(res=>{
                         if (res.length > 0) {
                            for(i=0;i<res.length;i++){
                             bot.deleteMessage(res[i].chatid,res[i].messageid)
@@ -774,6 +784,7 @@ async function selectNotes (chatid) {
                     bot.removeListener('callback_query', listener)
                     async function notered(msg){
                         if (res[index].chatid === msg.message.chat.id && msg.data === 'redtime'){
+                            bot.removeListener('callback_query', notered)
                             if(res[index].everyday == 1){
                                 let note = {
                                     id: res[index].id,
@@ -805,8 +816,15 @@ async function selectNotes (chatid) {
                                 if (res[index].chatid === msg.chat.id && msg.text !== '/start') {
                                     notesModel.update({notename:msg.text}, {where:{id:res[index].id}})
                                     bot.deleteMessage(res[index].chatid, mess)
-                                    bot.sendMessage(res[index].chatid, `Название было изменено на "${msg.text}"`, back)
+                                    let message = await bot.sendMessage(res[index].chatid, `Название было изменено на "${msg.text}"`, back)
                                     bot.removeListener('message', redName)
+                                    async function delmess (msg) {
+                                        if (msg.data = 'starbackt' && msg.message.chat.id === res[index].chatid) {
+                                            bot.deleteMessage(msg.message.chat.id, message.message_id)
+                                            bot.removeListener('callback_query', delmess)
+                                        }
+                                    }
+                                    bot.on('callback_query', delmess)
                                 } else if (res[index].chatid === msg.chat.id && msg.text === '/start') {
                                     bot.deleteMessage(res[index].chatid, mess)
                                     bot.removeListener('message', redName)
@@ -818,7 +836,7 @@ async function selectNotes (chatid) {
                             bot.deleteMessage(res[index].chatid, mess)
                             bot.removeListener('callback_query', notered)
                         }
-                    } 
+                    }
                     bot.on('callback_query', notered)
                     bot.editMessageReplyMarkup(eventRedBtn, {chat_id: res[index].chatid, message_id: mess})
                 }
