@@ -23,6 +23,15 @@ back = {
     })
 } 
 
+eventRedBtn = {
+
+        inline_keyboard: [
+            [{text: 'Редактировать дату\время', callback_data: 'redtime'}, {text: 'Редактировать название', callback_data: 'redname'}],
+            [{text: 'Назад', callback_data: 'start'}],
+        ]
+
+}
+
 replyBack = {
     reply_markup: JSON.stringify( {
         keyboard: [
@@ -75,6 +84,7 @@ getHourfored =  [
             [{text: 'Назад', callback_data:'start'}]
         ]
 
+module.exports.eventRedBtn = eventRedBtn
 module.exports.infoMenu =infoMenu
 module.exports.getHour = getHour
 module.exports.getHourfored = getHourfored
