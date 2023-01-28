@@ -310,13 +310,12 @@ async function notecreator(chatid){
                                 note.min = msg.data
                                 bot.editMessageText(`Напомню про "${note.eventName}" ${new Date(note.date).format('d.M.Y')} в ${note.hour}:${note.min}`, {chat_id:note.chatid,message_id:note.message})
                                 let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
-                                let date = new Date().setHours(note.hour)
+                                let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
                                 date = new Date(date).setHours(new Date(date).getHours()-user.timediff)
-                                note.hour = new Date(date).getHours()
                                 console.log(note.hour);
                                 await notesModel.create({
                                     chatid: note.chatid,
-                                    notedate: `${note.date} ${note.hour}:${note.min}:00`,
+                                    notedate: `${new Date(date).format(`Y-M-d H:m`)}`,
                                     notename: note.eventName,
                                     everyday: false
                                 })
@@ -476,12 +475,11 @@ async function noteEdCreator(chatid) {
                                 }
                                 bot.editMessageText(`Напомню про "${note.eventName}" в ${note.hour}:${note.min}.`, {chat_id:note.chatid,message_id:note.message})
                                 let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
-                                let date = new Date().setHours(note.hour)
+                                let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
                                 date = new Date(date).setHours(new Date(date).getHours()-user.timediff)
-                                note.hour = new Date(date).getHours()
                                 await notesModel.create({
                                     chatid: note.chatid,
-                                    notedate: `${note.date} ${note.hour}:${note.min}:00`,
+                                    notedate: `${new Date(date).format(`Y-M-d H:m`)}`,
                                     notename: note.eventName,
                                     everyday: true
                                 })
@@ -684,10 +682,9 @@ async function editNotesdate (note) {
                     bot.deleteMessage(chatid, note.mess)
                     await bot.sendMessage(note.chatid, `Напомню ${new Date(note.date).format('d.M.Y')} в ${note.hour}:${note.min}`)
                     let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
-                    let date = new Date().setHours(note.hour)
+                    let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
                     date = new Date(date).setHours(new Date(date).getHours()-user.timediff)
-                    note.hour = new Date(date).getHour()
-                    await notesModel.update({notedate: `${note.date} ${note.hour}:${note.min}:00`}, {where:{id: note.id}})
+                    await notesModel.update({notedate: `${new Date(date).format(`Y-M-d H:m`)}`}, {where:{id: note.id}})
                     let mess = await bot.sendMessage(chatid, 'Уведомление изменено.', mainmenu)
                     createChatDB(chatid, mess.message_id)
                     note = 0
@@ -935,6 +932,10 @@ async function editTimediff (chatid) {
                         serverDate = new Date(serverDate).setSeconds(00)
                         serverDate = new Date(serverDate).setMilliseconds(0)
                         let datediff = (userDate - serverDate)/60/60/1000
+                        console.log(`Текущий таймдиф ${datediff}`);
+                        let oldtimediff = await usersModel.findOne({where:{id:chatid}})
+                        let diff = datediff - oldtimediff.timediff
+                        console.log(`Старый таймдиф ${oldtimediff.timediff} разница времени ${diff}`);
                         usersModel.update({timediff: datediff}, {where:{id: chatid}})
                         bot.editMessageText('Спасибо, данные изменил', {chat_id: chatid, message_id:mess.message_id})
                         bot.removeListener('callback_query', changedate)
