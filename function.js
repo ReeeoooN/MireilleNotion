@@ -15,10 +15,18 @@ async function regUser(chatid) {
     let note = {date: 0, hour:0, chatid:chatid}
     let year = Number(new Date().format('Y'))
     let month = Number(new Date().format('M'))
-    let btn = {reply_markup: JSON.stringify(
-            monthBuilder(month, year)
-        )} 
-    
+    let btnDateBack = new Date ().setDate(new Date().getDate()-1)
+    let btnDateNext = new Date ().setDate(new Date().getDate()+1)
+    let btn = {
+        reply_markup: JSON.stringify( {
+            inline_keyboard: [
+                [{text: `${new Date (btnDateBack).format('d.M.Y')}`, callback_data: `${new Date (btnDateBack).format('Y-M-d')}`},
+                {text: `${new Date ().format('d.M.Y')}`, callback_data: `${new Date ().format('Y-M-d')}`},
+                {text: `${new Date (btnDateNext).format('d.M.Y')}`, callback_data: `${new Date (btnDateNext).format('Y-M-d')}`}
+                ],
+            ]
+        })
+    } 
     let mess = await bot.sendMessage(chatid, 'Хочу определить твой часовой пояс. укажи дату', btn)
     let regDate = new Promise ( (resolve, reject)=>{
         async function regEvent (msg) {
@@ -883,12 +891,18 @@ async function selectNotes (chatid) {
 
 async function editTimediff (chatid) {
     let note = {date: 0, hour:0, chatid:chatid}
-    let year = Number(new Date().format('Y'))
-    let month = Number(new Date().format('M'))
-    let btn = {reply_markup: JSON.stringify(
-            monthBuilder(month, year)
-        )} 
-    
+    let btnDateBack = new Date ().setDate(new Date().getDate()-1)
+    let btnDateNext = new Date ().setDate(new Date().getDate()+1)
+    let btn = {
+        reply_markup: JSON.stringify( {
+            inline_keyboard: [
+                [{text: `${new Date (btnDateBack).format('d.M.Y')}`, callback_data: `${new Date (btnDateBack).format('Y-M-d')}`},
+                {text: `${new Date ().format('d.M.Y')}`, callback_data: `${new Date ().format('Y-M-d')}`},
+                {text: `${new Date (btnDateNext).format('d.M.Y')}`, callback_data: `${new Date (btnDateNext).format('Y-M-d')}`}
+                ],
+            ]
+        })
+    } 
     let mess = await bot.sendMessage(chatid, 'Хочу изменить твой часовой пояс. укажи дату', btn)
     let regDate = new Promise ( (resolve, reject)=>{
         async function changedate (msg) {
@@ -926,17 +940,21 @@ async function editTimediff (chatid) {
                 } else if (note.hour === 0) {
                     if (msg.data !== "hourback" && msg.data !== 'hournext' && msg.data !== 'back') {
                         note.hour = msg.data
+                        let usersData = await usersModel.findOne({where: {id:chatid}, raw:true})
                         let userDate = new Date(`${note.date} ${note.hour}:00`).getTime()
                         let serverDate = new Date().getTime()
                         serverDate = new Date(serverDate).setMinutes(00)
                         serverDate = new Date(serverDate).setSeconds(00)
                         serverDate = new Date(serverDate).setMilliseconds(0)
                         let datediff = (userDate - serverDate)/60/60/1000
-                        console.log(`Текущий таймдиф ${datediff}`);
-                        let oldtimediff = await usersModel.findOne({where:{id:chatid}})
-                        let diff = datediff - oldtimediff.timediff
-                        console.log(`Старый таймдиф ${oldtimediff.timediff} разница времени ${diff}`);
-                        usersModel.update({timediff: datediff}, {where:{id: chatid}})
+
+                        usersData.timediff = datediff - usersData.timediff
+                        await usersModel.update({timediff: datediff}, {where:{id: chatid}})
+                        let notesArr = await notesModel.findAll({where:{chatid: chatid}, raw:true})
+                        for (i=0; i<notesArr.length; i++){
+                            let notesDate = new Date (notesArr[i].notedate).setHours(new Date (notesArr[i].notedate).getHours()-usersData.timediff)
+                            notesModel.update({notedate: new Date(notesDate).format('Y-M-d H:m:S')}, {where: {id: notesArr[i].id}})
+                        }
                         bot.editMessageText('Спасибо, данные изменил', {chat_id: chatid, message_id:mess.message_id})
                         bot.removeListener('callback_query', changedate)
                         resolve(note.chatid)
