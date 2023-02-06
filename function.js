@@ -473,10 +473,11 @@ async function noteEdCreator(chatid) {
                             if (msg.data !== "minback" && msg.data !== 'minnext' && msg.data !== 'back') {
                                 note.min = msg.data
                                 let noteDate = new Date (note.date)
-                                noteDate = new Date (note.date).setHours(note.hour)
-                                noteDate = new Date (note.date).setMinutes(note.min)
-                                noteDate = new Date (note.date).getTime()
-                                let dateNow = new Date ().getTime()
+                                noteDate = new Date (noteDate).setHours(note.hour)
+                                noteDate = new Date (noteDate).setMinutes(note.min)
+                                noteDate = new Date (noteDate).getTime()
+                                let dateNow = new Date()
+                                dateNow =new Date(dateNow).getTime()
                                 if (noteDate < dateNow) {
                                     noteDate = new Date (noteDate).setDate(new Date (noteDate).getDate()+1)
                                     note.date = new Date (noteDate).format('Y-M-d')
@@ -679,9 +680,9 @@ async function editNotesdate (note) {
                     console.log(note);
                     if (note.everyday === 1){
                         let noteDate = new Date (note.date)
-                        noteDate = new Date (note.date).setHours(note.hour)
-                        noteDate = new Date (note.date).setMinutes(note.min)
-                        noteDate = new Date (note.date).getTime()
+                        noteDate = new Date (noteDate).setHours(note.hour)
+                        noteDate = new Date (noteDate).setMinutes(note.min)
+                        noteDate = new Date (noteDate).getTime()
                         let dateNow = new Date ().getTime()
                         if (noteDate < dateNow) {
                             noteDate = new Date (noteDate).setDate(new Date (noteDate).getDate()+1)
