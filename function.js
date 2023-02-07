@@ -41,7 +41,8 @@ async function regUser(chatid) {
                         btn = {
                             inline_keyboard: newBtn
                         }
-                        bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
+                        await bot.editMessageText('Хочу определить твой часовой пояс. Который час?',{chat_id: chatid, message_id: mess.message_id})
+                        await bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
                     } else if (msg.data === 'backmonth') {
                         if(month == 1) {
                             month = 12
@@ -905,7 +906,7 @@ async function editTimediff (chatid) {
             ]
         })
     } 
-    let mess = await bot.sendMessage(chatid, 'Хочу изменить твой часовой пояс. укажи дату', btn)
+    let mess = await bot.sendMessage(chatid, 'Хочу изменить твой часовой пояс. Укажи дату', btn)
     let regDate = new Promise ( (resolve, reject)=>{
         async function changedate (msg) {
             if(msg.message.chat.id === chatid && msg.data !== 'dick' && msg.data !== 'noteAdd' && msg.data !== 'myNote' && msg.data !== 'start' && msg.data !== 'myEdNote' && msg.data !== 'myinfo') {
@@ -919,7 +920,8 @@ async function editTimediff (chatid) {
                         btn = {
                             inline_keyboard: newBtn
                         }
-                        bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
+                        await bot.editMessageText('Хочу изменить твой часовой пояс. Который час?',{chat_id: chatid, message_id: mess.message_id})
+                        await bot.editMessageReplyMarkup(btn, {chat_id: chatid, message_id: mess.message_id})
                     } else if (msg.data === 'backmonth') {
                         if(month == 1) {
                             month = 12
