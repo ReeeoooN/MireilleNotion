@@ -9,6 +9,7 @@ bot.setMyCommands( [
     {command: '/start', description: 'Начать'}
 ]) // Стандартные команды
 bot.on('message', async msg=>{ 
+    console.log(toString(msg.text));
     if(msg.text === '/start') {
         chatModel.findAll({where:{chatid:msg.chat.id}}).then(res=>{
             for (i=0;i<res.length;i++){
@@ -35,8 +36,8 @@ bot.on('message', async msg=>{
 bot.on('callback_query', async msg=>{
     usersModel.findOne({where: {id:msg.message.chat.id}}).then(async user=>{
         if(!user) {
-            await bot.sendMessage(msg.chat.id, `Рады вас видеть в этой бренной вселенной, ${msg.from.first_name}, что-то пошло не так, потребуется провести регистрацию повторно`)
-            regUser(msg.chat.id)
+            await bot.sendMessage(msg.message.chat.id, `Рады вас видеть в этой бренной вселенной, ${msg.from.first_name}, что-то пошло не так, потребуется провести регистрацию повторно`)
+            regUser(msg.message.chat.id)
         } else {
             if (msg.data == 'noteAdd') {
                 deleteBotMessage(msg.message.chat.id)
