@@ -4,14 +4,52 @@ const { bot } = require("./TelegramAPI")
 const format = require('node.date-time');
 const { usersModel, notesModel, chatModel } = require("./bd");
 
-function fuck (chatid, err) {
-    bot.sendMessage(chatid, 'Простите, я сломался, разработчик уже в курсе неполадки, вскоре их поправят')
-    bot.sendMessage(902064437, `Бро, я сломался ${err}`)
+function fuck (chatid) {
+    notesModel.findAll({where:{everyday:true}}).then(async res=>{
+        for(i=0;i<res.length;i++){
+            let noteDate = new Date (res[i].notedate)
+            noteDate = new Date (noteDate).getTime()
+            let dateNow = new Date()
+            dateNow =new Date(dateNow).getTime()
+            if (noteDate < dateNow) {
+                noteDate = new Date (noteDate).setDate(new Date (noteDate).getDate()+1)
+                notesModel.update({notedate: new Date (noteDate).format(`Y-M-d H:m`)}, {where:{id:res[i].id}})
+            }
+        }
+        let mess = await bot.sendMessage(chatid, "done", back)
+        createChatDB(chatid, mess.message_id)
+    })
 }
 
+async function sorrySend(chatid) {
+    usersModel.findAll({raw:true}).then(async users =>{
+        for(i=0;i<users.length;i++){
+            bot.sendMessage(users[i].id, `Разбежавшись прыгнул со скалы... И сломался я. \n Сейчас я работаю, ежедневные уведомления, о которых я не уведомил, сработают завтра, сорри. Обычные уведомления можно отредактировать или удалить по кнопке "Мои уведомления"`)
+        }
+    })
+    bot.sendMessage(chatid, 'done', back)
+}
 
+async function updateSend(chatid) {
+    usersModel.findAll({raw:true}).then(async users =>{
+        for(i=0;i<users.length;i++){
+            let str = '';
+            let userNotes = await notesModel.findAll({where:{chatid:users[i].id}, raw:true})
+            for (j=0;j<userNotes.length;j++){
+                if (userNotes[j].everyday = 1) {
+                    str = str + `Ежедневное уведомление: "${userNotes[j].notename}", должен уведомить ${new Date (userNotes[j].notedate).format(`d.M.Y H:m`)}\n`
+                } else { 
+                    str = str + `Уведомление: "${userNotes[j].notename}", должен уведомить ${new Date (userNotes[j].notedate).format(`d.M.Y H:m`)}\n`
+                }
+            }
+            bot.sendMessage(users[i].id, `Разработчик залез в мой код, временно могу не работать, сорри. Список уведомлений:\n ${str}`)
+            str = '';
+        }
+    })
+    bot.sendMessage(chatid, 'done', back)
+}
 
-async function regUser(chatid) {
+async function regUser(chatid, name) {
     let note = {date: 0, hour:0, chatid:chatid}
     let year = Number(new Date().format('Y'))
     let month = Number(new Date().format('M'))
@@ -74,7 +112,17 @@ async function regUser(chatid) {
                         let datediff = (userDate - serverDate)/60/60/1000
                         usersModel.create({
                             id: note.chatid,
-                            timediff: datediff
+                            timediff: datediff,
+                            name: name,
+                            isadmin: false
+                        }).catch(err=>{
+                            usersModel.findAll({where:{isadmin: true}}).then(res=>{
+                                console.log("Error - " + err);
+                                for (i=0; i<res.length; i++){
+                                    bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
+                                    bot.sendMessage(note.chatid, "Произошла ошибка, попробуйте еще раз.")
+                                }
+                            })
                         })
                         bot.editMessageText('Спасибо, я тебя запомнил, благодаря указанному времени я смогу отправлять тебе уведомления в твоем часовом поясе', {chat_id: chatid, message_id:mess.message_id})
                         resolve(note.chatid)
@@ -327,6 +375,14 @@ async function notecreator(chatid){
                                     notedate: `${new Date(date).format(`Y-M-d H:m`)}`,
                                     notename: note.eventName,
                                     everyday: false
+                                }).catch(err=>{
+                                    usersModel.findAll({where:{isadmin: true}}).then(res=>{
+                                        console.log("Error - " + err);
+                                        for (i=0; i<res.length; i++){
+                                            bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
+                                            bot.sendMessage(note.chatid, "Произошла ошибка, уведомление не создано, попробуй еще раз.")
+                                        }
+                                    })
                                 })
                                 bot.removeListener('callback_query', dateBuilder)
                                 resolve(note)
@@ -383,7 +439,7 @@ async function notecreator(chatid){
                 }
                 bot.on('callback_query', dateBuilder)
             }).then(async note=>{
-                let mess = await bot.sendMessage(note.chatid, 'Уведомление создано.', mainmenu)
+                let mess = await bot.sendMessage(note.chatid, 'Мы вернулись в главное меню', mainmenu)
                 createChatDB(note.chatid, mess.message_id)
             }).catch(err=>{
                 bot.editMessageText('Ты вернулся в главное меню', {chat_id: err.chatid, message_id:err.message})
@@ -492,6 +548,14 @@ async function noteEdCreator(chatid) {
                                     notedate: `${new Date(date).format(`Y-M-d H:m`)}`,
                                     notename: note.eventName,
                                     everyday: true
+                                }).catch(err=>{
+                                    usersModel.findAll({where:{isadmin: true}}).then(res=>{
+                                        console.log("Error - " + err);
+                                        for (i=0; i<res.length; i++){
+                                            bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
+                                            bot.sendMessage(note.chatid, "Произошла ошибка, уведомление не создано, попробуй еще раз.")
+                                        }
+                                    })
                                 })
                                 bot.removeListener('callback_query', dateBuilder)
                                 resolve(note)
@@ -548,7 +612,7 @@ async function noteEdCreator(chatid) {
                 }
                 bot.on('callback_query', dateBuilder)
             }).then(async note=>{
-                let mess = await bot.sendMessage(note.chatid, 'Уведомление создано.', mainmenu)
+                let mess = await bot.sendMessage(note.chatid, 'Мы вернулись в главное меню.', mainmenu)
                 createChatDB(note.chatid, mess.message_id)
             }).catch(err=>{
                 bot.editMessageText('Ты вернулся в главное меню', {chat_id: err.chatid, message_id:err.message})
@@ -695,8 +759,16 @@ async function editNotesdate (note) {
                     let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
                     let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
                     date = new Date(date).setHours(new Date(date).getHours()-user.timediff)
-                    await notesModel.update({notedate: `${new Date(date).format(`Y-M-d H:m`)}`}, {where:{id: note.id}})
-                    let mess = await bot.sendMessage(chatid, 'Уведомление изменено.', mainmenu)
+                    await notesModel.update({notedate: `${new Date(date).format(`Y-M-d H:m`)}`}, {where:{id: note.id}}).catch(err=>{
+                        usersModel.findAll({where:{isadmin: true}}).then(res=>{
+                            console.log("Error - " + err);
+                            for (i=0; i<res.length; i++){
+                                bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
+                                bot.sendMessage(note.chatid, "Произошла ошибка, попробуйте еще раз.")
+                            }
+                        })
+                    })
+                    let mess = await bot.sendMessage(chatid, 'Мы вернулись в главное меню.', mainmenu)
                     createChatDB(chatid, mess.message_id)
                     note = 0
                     
@@ -1018,3 +1090,5 @@ module.exports.regUser = regUser
 module.exports.fuck = fuck
 module.exports.notecreator = notecreator
 module.exports.monthBuilder = monthBuilder
+module.exports.sorrySend = sorrySend
+module.exports.updateSend = updateSend

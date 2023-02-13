@@ -6,6 +6,22 @@ mainmenu = {
         ]
     })
 }
+mainmenuadmin = {
+    reply_markup: JSON.stringify({
+        inline_keyboard: [
+            [{text: 'Создать уведомление', callback_data: 'noteAdd'}, {text: 'Ежедневное уведомление', callback_data: 'myEdNote'}],
+            [{text: 'Мои уведомления', callback_data: 'myNote'}, {text: 'Дополнительно', callback_data: 'myinfo'}],
+            [{text: 'admin room', callback_data: 'adminmenu'}]
+        ]
+    })
+}
+adminbtn = {
+    reply_markup: JSON.stringify({
+        inline_keyboard: [
+            [{text: 'restart notion', callback_data: 'noterest'}, {text: 'send sorry', callback_data: 'sorrysend'}, {text: 'send update', callback_data: 'updatesend'}],
+        ]
+    })
+}
 infoMenu = {
     reply_markup: JSON.stringify({
         inline_keyboard: [
@@ -95,3 +111,5 @@ module.exports.back = back
 module.exports.confirm = confirmBtn
 module.exports.getTime = getTime
 module.exports.replyBack = replyBack
+module.exports.mainmenuadmin = mainmenuadmin
+module.exports.adminbtn = adminbtn

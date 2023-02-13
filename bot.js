@@ -1,6 +1,6 @@
-const { mainmenu, infoMenu, back } = require("./botBtn");
+const { mainmenu, infoMenu, back, mainmenuadmin, adminbtn } = require("./botBtn");
 const { bot } = require("./TelegramAPI");
-const { fuck, notecreator, regUser, selectNotes, noteEdCreator, editTimediff} = require('./function');
+const { fuck, notecreator, regUser, selectNotes, noteEdCreator, editTimediff, sorrySend, updateSend} = require('./function');
 const { createChatDB, deleteBotMessage } = require("./messdel");
 const { chatModel, usersModel, notesModel } = require("./bd");
 const { where } = require("sequelize");
@@ -21,13 +21,22 @@ bot.on('message', async msg=>{
             })
             }
         })
-        usersModel.findOne({where: {id:msg.chat.id}}).then(async user=>{
+        usersModel.findOne({where: {id:msg.chat.id}, raw:true}).then(async user=>{
+            console.log(user);
             if(!user) {
                 await bot.sendMessage(msg.chat.id, `Рады вас видеть в этой бренной вселенной, ${msg.from.first_name}`)
-                regUser(msg.chat.id)
+                regUser(msg.chat.id, msg.from.username)
             } else {
-                let mess = await bot.sendMessage(msg.chat.id, 'Создадим уведомление?', mainmenu)
-                createChatDB(msg.chat.id, mess.message_id)
+                if (user.name == null) {
+                    usersModel.update({name: msg.from.username}, {where: {id:msg.chat.id}})
+                }
+                if (user.isadmin == 0) {
+                    let mess = await bot.sendMessage(msg.chat.id, 'Создадим уведомление?', mainmenu)
+                    createChatDB(msg.chat.id, mess.message_id)
+                } else {
+                    let mess = await bot.sendMessage(msg.chat.id, 'Создадим уведомление?', mainmenuadmin)
+                    createChatDB(msg.chat.id, mess.message_id)
+                }
             }
         })
     }
@@ -36,9 +45,14 @@ bot.on('message', async msg=>{
 bot.on('callback_query', async msg=>{
     usersModel.findOne({where: {id:msg.message.chat.id}}).then(async user=>{
         if(!user) {
+            if (msg.data == 'noteAdd' || msg.data === 'myNote' || msg.data === 'myEdNote' || msg.data === 'myinfo' || msg.data === 'donate' || msg.data === 'timediffEdit' || msg.data == 'start') {
             await bot.sendMessage(msg.message.chat.id, `Рады вас видеть в этой бренной вселенной, ${msg.from.first_name}, что-то пошло не так, потребуется провести регистрацию повторно`)
-            regUser(msg.message.chat.id)
+            regUser(msg.message.chat.id, msg.from.name)
+            }
         } else {
+            if (user.name == null) {
+                usersModel.update({name: msg.from.username}, {where: {id:msg.chat.id}})
+            }
             if (msg.data == 'noteAdd') {
                 deleteBotMessage(msg.message.chat.id)
                 notecreator(msg.message.chat.id)
@@ -58,7 +72,8 @@ bot.on('callback_query', async msg=>{
             }
             if (msg.data === 'donate') {
                 deleteBotMessage(msg.message.chat.id)
-                let mess = await bot.sendMessage(msg.message.chat.id, 'Пока не за что', back)
+                await bot.sendMessage(msg.message.chat.id, 'Если возникло такое желание, то ты можешь отправить донат на <a href="qiwi.com/n/REEEOOON">киви</a>, спасибо!',{parse_mode: 'HTML'})
+                let mess =  await bot.sendMessage(msg.message.chat.id, "Создадим уведомление?", mainmenu)
                 createChatDB(msg.message.chat.id, mess.message_id)
             }
             if (msg.data === 'timediffEdit') {
@@ -76,6 +91,23 @@ bot.on('callback_query', async msg=>{
                 })
                 let mess = await bot.sendMessage(msg.message.chat.id, `С возвращением, ${msg.from.first_name}`, mainmenu)
                 createChatDB(msg.message.chat.id, mess.message_id)
+            }
+            if (msg.data == "adminmenu") {
+                deleteBotMessage(msg.message.chat.id)
+                let mess = await bot.sendMessage(msg.message.chat.id, "Welcome to the club", adminbtn)
+                createChatDB(msg.message.chat.id, mess.message_id)
+            }
+            if (msg.data == "noterest") {
+                deleteBotMessage(msg.message.chat.id)
+                fuck(msg.message.chat.id)
+            }
+            if (msg.data == "sorrysend") {
+                deleteBotMessage(msg.message.chat.id)
+                sorrySend(msg.message.chat.id)
+            }
+            if (msg.data == "updatesend") {
+                deleteBotMessage(msg.message.chat.id)
+                updateSend(msg.message.chat.id)
             }
         }
     })
