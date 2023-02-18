@@ -123,7 +123,7 @@ async function notesSender(){
     for (i=0;i<notesArray.length;i++){
         let noteTime = new Date (notesArray[i].notedate).getTime()
         if (serverTime == noteTime) {
-            bot.sendMessage(notesArray[i].chatid, `Йо, не забудь про "${notesArray[i].notename}"!`)
+            bot.sendMessage(notesArray[i].chatid, `Я пришёл к тебе напомнить важную вещь! ${notesArray[i].notename}.`)
             if (notesArray[i].everyday == 1) {
                 let notedate = new Date(notesArray[i].notedate)
                 notedate.setDate(notedate.getDate()+1)

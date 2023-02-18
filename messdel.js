@@ -16,14 +16,12 @@ function deleteBotMessage (chatid) {
 } // Удаляет предыдущее сообщение
 
 function createChatDB(chatid, messid) {
-   try {
     chatModel.create({
         chatid: chatid,
         messageid: messid
+    }).catch(err=>{
+        console.log(err);
     })
-   } catch(err) {
-
-   }
 } // Создает запись с сообщением для удаления
 
 module.exports.deleteBotMessage = deleteBotMessage
