@@ -104,7 +104,8 @@ async function regUser(chatid, name) {
                     if (msg.data !== "hourback" && msg.data !== 'hournext' && msg.data !== 'back') {
                         bot.removeListener('callback_query', regEvent)
                         note.hour = msg.data
-                        let userDate = new Date(`${note.date}T${note.hour}:00`).getTime()
+                        let userDate = new Date (note.date).setHours(note.hour)
+                        userDate = new Date (userDate).getTime()
                         let serverDate = new Date().getTime()
                         serverDate = new Date(serverDate).setMinutes(00)
                         serverDate = new Date(serverDate).setSeconds(00)
