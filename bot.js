@@ -51,7 +51,7 @@ bot.on('callback_query', async msg=>{
             }
         } else {
             if (user.name == null) {
-                usersModel.update({name: msg.from.username}, {where: {id:msg.chat.id}})
+                usersModel.update({name: msg.from.username}, {where: {id:msg.message.chat.id}})
             }
             if (msg.data == 'noteAdd') {
                 deleteBotMessage(msg.message.chat.id)
@@ -117,7 +117,8 @@ bot.on('callback_query', async msg=>{
 
 async function notesSender(){ 
     let serverTime = new Date ().setSeconds(00)
-    serverTime = new Date (serverTime).setMilliseconds(00)
+    if (new Date(serverTime).getMinutes()%5 == 0) {
+        serverTime = new Date (serverTime).setMilliseconds(00)
     serverTime = new Date (serverTime).getTime()
     let notesArray = await notesModel.findAll({raw:true})
     for (i=0;i<notesArray.length;i++){
@@ -134,6 +135,7 @@ async function notesSender(){
             }
         }
     }
+    }
 }
 notesSender()
-setInterval(notesSender, 300000)
+setInterval(notesSender, 60000)
