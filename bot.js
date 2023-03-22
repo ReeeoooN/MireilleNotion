@@ -1,9 +1,11 @@
-const { mainmenu, infoMenu, back, mainmenuadmin, adminbtn } = require("./botBtn");
+const { mainmenu, infoMenu, mainmenuadmin, adminbtn } = require("./botBtn");
 const { bot } = require("./TelegramAPI");
-const { fuck, notecreator, regUser, selectNotes, noteEdCreator, editTimediff, sorrySend, updateSend} = require('./function');
+const { selectNotes,} = require('./editNoteFunc');
+const {fuck, sorrySend, updateSend} = require("./adminFunc")
 const { createChatDB, deleteBotMessage } = require("./messdel");
 const { chatModel, usersModel, notesModel } = require("./bd");
-const { where } = require("sequelize");
+const { creator } = require("./createFunc");
+const { userHour } = require("./userFunc");
 
 bot.setMyCommands( [
     {command: '/start', description: 'Начать'}
@@ -25,7 +27,7 @@ bot.on('message', async msg=>{
             console.log(user);
             if(!user) {
                 await bot.sendMessage(msg.chat.id, `Рады вас видеть в этой бренной вселенной, ${msg.from.first_name}`)
-                regUser(msg.chat.id, msg.from.username)
+                userHour(msg.chat.id, false, msg.from.name)
             } else {
                 if (user.name == null) {
                     usersModel.update({name: msg.from.username}, {where: {id:msg.chat.id}})
@@ -47,7 +49,7 @@ bot.on('callback_query', async msg=>{
         if(!user) {
             if (msg.data == 'noteAdd' || msg.data === 'myNote' || msg.data === 'myEdNote' || msg.data === 'myinfo' || msg.data === 'donate' || msg.data === 'timediffEdit' || msg.data == 'start') {
             await bot.sendMessage(msg.message.chat.id, `Рады вас видеть в этой бренной вселенной, ${msg.from.first_name}, что-то пошло не так, потребуется провести регистрацию повторно`)
-            regUser(msg.message.chat.id, msg.from.name)
+            userHour(msg.chat.id, false, msg.from.name)
             }
         } else {
             if (user.name == null) {
@@ -55,14 +57,16 @@ bot.on('callback_query', async msg=>{
             }
             if (msg.data == 'noteAdd') {
                 deleteBotMessage(msg.message.chat.id)
-                notecreator(msg.message.chat.id)
+                let note = {date: 0, hour: 0, min: 0, eventName: 0, chatid: msg.message.chat.id, message: 0, everyday: false}
+                creator(note, msg.message.chat.id)
             }
             if (msg.data === 'myNote') {
                 selectNotes(msg.message.chat.id)
             }
             if (msg.data === 'myEdNote') {
                 deleteBotMessage(msg.message.chat.id)
-                noteEdCreator(msg.message.chat.id)
+                let note = {date: new Date ().format('Y-M-d'), hour: 0, min: 0, eventName: 0, chatid: msg.message.chat.id, message: 0, everyday: true}
+                creator(note, msg.message.chat.id)
         
             }
             if (msg.data === 'myinfo') {
@@ -78,7 +82,7 @@ bot.on('callback_query', async msg=>{
             }
             if (msg.data === 'timediffEdit') {
                 deleteBotMessage(msg.message.chat.id)
-                editTimediff(msg.message.chat.id)
+                userHour(msg.message.chat.id, true, msg.from.name)
             }
             if (msg.data == 'start') {
                await chatModel.findAll({where:{chatid:msg.message.chat.id}}).then(res=>{
