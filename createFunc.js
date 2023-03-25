@@ -80,7 +80,7 @@ async function creator(note, chatid){
                 
             } else if ((msg.text === '/start' && msg.chat.id === chatid) || (msg.text === 'Назад' && msg.chat.id === chatid)) {
                 bot.removeListener('message', giveName)
-                reject({chatid: chatid, message:  mess.message_id, text: msg.text})
+                reject({chatid: note.chatid, message:  note.message, text: msg.text})
             }
         }
         bot.on('message', giveName)
@@ -295,7 +295,7 @@ async function creator(note, chatid){
                         }
                     } else if (msg.data === 'start') {
                         bot.removeListener('callback_query', dateBuilder)
-                        reject({chatid:chatid,message:mess.message_id})
+                        reject({chatid:note.chatid,message:note.message})
                     }
                 }
                 bot.on('callback_query', dateBuilder)
