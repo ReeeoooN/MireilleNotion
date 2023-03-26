@@ -1,17 +1,18 @@
-const { mainmenu, infoMenu, mainmenuadmin, adminbtn } = require("./botBtn");
+const { infoMenuBtnCreate, adminbtn, mainmenuBtnCreate, back } = require("./botBtn");
 const { bot } = require("./TelegramAPI");
 const { selectNotes,} = require('./editNoteFunc');
 const {fuck, sorrySend, updateSend} = require("./adminFunc")
 const { createChatDB, deleteBotMessage } = require("./messdel");
-const { chatModel, usersModel, notesModel } = require("./bd");
+const { chatModel, usersModel, notesModel, friendshipModel } = require("./bd");
 const { creator } = require("./createFunc");
 const { userHour } = require("./userFunc");
+const { userAddFriend, userShowFriend } = require("./coopFunc")
+const { where } = require("sequelize");
 
 bot.setMyCommands( [
     {command: '/start', description: 'Начать'}
 ]) // Стандартные команды
 bot.on('message', async msg=>{ 
-    console.log(toString(msg.text));
     if(msg.text === '/start') {
         chatModel.findAll({where:{chatid:msg.chat.id}}).then(res=>{
             for (i=0;i<res.length;i++){
@@ -24,21 +25,18 @@ bot.on('message', async msg=>{
             }
         })
         usersModel.findOne({where: {id:msg.chat.id}, raw:true}).then(async user=>{
-            console.log(user);
             if(!user) {
                 await bot.sendMessage(msg.chat.id, `Рады вас видеть в этой бренной вселенной, ${msg.from.first_name}`)
-                userHour(msg.chat.id, false, msg.from.name)
+                userHour(msg.chat.id, false, msg.from.first_name, msg.from.username)
             } else {
                 if (user.name == null) {
-                    usersModel.update({name: msg.from.username}, {where: {id:msg.chat.id}})
+                    usersModel.update({name: msg.from.first_name}, {where: {id:msg.chat.id}})
                 }
-                if (user.isadmin == 0) {
-                    let mess = await bot.sendMessage(msg.chat.id, 'Создадим уведомление?', mainmenu)
-                    createChatDB(msg.chat.id, mess.message_id)
-                } else {
-                    let mess = await bot.sendMessage(msg.chat.id, 'Создадим уведомление?', mainmenuadmin)
-                    createChatDB(msg.chat.id, mess.message_id)
+                if (user.username == null) {
+                    usersModel.update({username: msg.from.username}, {where: {id:msg.chat.id}})
                 }
+                let mess = await bot.sendMessage(msg.chat.id, 'Создадим уведомление?', await mainmenuBtnCreate(msg.chat.id))
+                createChatDB(msg.chat.id, mess.message_id)
             }
         })
     }
@@ -49,11 +47,14 @@ bot.on('callback_query', async msg=>{
         if(!user) {
             if (msg.data == 'noteAdd' || msg.data === 'myNote' || msg.data === 'myEdNote' || msg.data === 'myinfo' || msg.data === 'donate' || msg.data === 'timediffEdit' || msg.data == 'start') {
             await bot.sendMessage(msg.message.chat.id, `Рады вас видеть в этой бренной вселенной, ${msg.from.first_name}, что-то пошло не так, потребуется провести регистрацию повторно`)
-            userHour(msg.chat.id, false, msg.from.name)
+            userHour(msg.chat.id, false, msg.message.chat.first_name, msg.message.chat.username)
             }
         } else {
             if (user.name == null) {
-                usersModel.update({name: msg.from.username}, {where: {id:msg.message.chat.id}})
+                usersModel.update({name: msg.message.chat.first_name}, {where: {id:msg.message.chat.id}})
+            }
+            if (user.username == null) {
+                usersModel.update({username: msg.message.chat.username}, {where: {id:msg.message.chat.id}})
             }
             if (msg.data == 'noteAdd') {
                 deleteBotMessage(msg.message.chat.id)
@@ -71,13 +72,22 @@ bot.on('callback_query', async msg=>{
             }
             if (msg.data === 'myinfo') {
                 deleteBotMessage(msg.message.chat.id)
-                let mess = await bot.sendMessage(msg.message.chat.id, 'Дополнительные возможности:', infoMenu)
-                createChatDB(msg.message.chat.id, mess.message_id)
+                usersModel.findOne({where:{id:msg.message.chat.id}, raw:true}).then(async res=>{
+                    if (res.coop == false) {
+                        let mess = await bot.sendMessage(msg.message.chat.id, 'Дополнительные возможности:', await infoMenuBtnCreate(msg.message.chat.id))
+                        createChatDB(msg.message.chat.id, mess.message_id)
+                    } else {
+                        let btn = await infoMenuBtnCreate(msg.message.chat.id)
+                        btn = btn.reply_markup
+                        let mess = await bot.sendMessage(msg.message.chat.id, `ID в совместном режиме <code>${res.id}</code> \n Дополнительные возможности:`, {reply_markup: btn, parse_mode: 'HTML'})
+                        createChatDB(msg.message.chat.id, mess.message_id)
+                    }
+                })
             }
             if (msg.data === 'donate') {
                 deleteBotMessage(msg.message.chat.id)
                 await bot.sendMessage(msg.message.chat.id, 'Если возникло такое желание, то ты можешь отправить донат на <a href="qiwi.com/n/REEEOOON">киви</a>, спасибо!',{parse_mode: 'HTML'})
-                let mess =  await bot.sendMessage(msg.message.chat.id, "Создадим уведомление?", mainmenu)
+                let mess =  await bot.sendMessage(msg.message.chat.id, "Создадим уведомление?", await mainmenuBtnCreate(msg.message.chat.id))
                 createChatDB(msg.message.chat.id, mess.message_id)
             }
             if (msg.data === 'timediffEdit') {
@@ -93,7 +103,7 @@ bot.on('callback_query', async msg=>{
                        }
                     }
                 })
-                let mess = await bot.sendMessage(msg.message.chat.id, `С возвращением, ${msg.from.first_name}`, mainmenu)
+                let mess = await bot.sendMessage(msg.message.chat.id, `С возвращением, ${msg.from.first_name}`, await mainmenuBtnCreate(msg.message.chat.id))
                 createChatDB(msg.message.chat.id, mess.message_id)
             }
             if (msg.data == "adminmenu") {
@@ -112,6 +122,27 @@ bot.on('callback_query', async msg=>{
             if (msg.data == "updatesend") {
                 deleteBotMessage(msg.message.chat.id)
                 updateSend(msg.message.chat.id)
+            }
+            if (msg.data == 'coopModeOn') {
+                deleteBotMessage(msg.message.chat.id)
+                await usersModel.update({coop:true}, {where: {id:msg.message.chat.id}})
+                await bot.sendMessage(msg.message.chat.id, `Твой ID совместного режима <code>${msg.message.chat.id}</code>, он будет отображаться разделе "Дополнительно". Сообщи этот ID другу, чтобы он мог оставлять тебе уведомления.`, {parse_mode: 'HTML'})
+                let mess = await bot.sendMessage(msg.message.chat.id, "Совместный режим был включен", await mainmenuBtnCreate(msg.message.chat.id))
+                createChatDB(msg.message.chat.id, mess.message_id)
+            }
+            if (msg.data == 'coopModeOff') {
+                deleteBotMessage(msg.message.chat.id)
+                await usersModel.update({coop:false}, {where: {id:msg.message.chat.id}})
+                let mess = await bot.sendMessage(msg.message.chat.id, "Совместный режим был выключен", await mainmenuBtnCreate(msg.message.chat.id))
+                createChatDB(msg.message.chat.id, mess.message_id)
+            }
+            if (msg.data == "myFriends") {
+                deleteBotMessage(msg.message.chat.id)
+                userShowFriend(msg.message.chat.id)
+            }
+            if (msg.data == "coopAddFriend") {
+                deleteBotMessage(msg.message.chat.id)
+                userAddFriend(msg.message.chat.id)
             }
         }
     })

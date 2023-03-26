@@ -1,4 +1,4 @@
-const { confirm, getHour, getTime, back, replyBack, mainmenu, eventRedBtn } = require("./botBtn")
+const { confirm, getHour, getTime, back, replyBack, eventRedBtn, mainmenuBtnCreate } = require("./botBtn")
 const { createChatDB, deleteBotMessage } = require("./messdel")
 const { bot } = require("./TelegramAPI")
 const format = require('node.date-time');
@@ -102,7 +102,7 @@ async function editNotesdate (note) {
                     if (note.everyday == 1) {
                         bot.removeListener('callback_query', dateBuilder)
                         bot.deleteMessage(chatid, mess)
-                        let message = await bot.sendMessage(chatid, 'Ты вернулся в главное меню', mainmenu)
+                        let message = await bot.sendMessage(chatid, 'Ты вернулся в главное меню', await mainmenuBtnCreate(chatid))
                         createChatDB(chatid, message.message_id)
                     } else {
                         note.date = 0
@@ -138,11 +138,12 @@ async function editNotesdate (note) {
                             console.log("Error - " + err);
                             for (i=0; i<res.length; i++){
                                 bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
-                                bot.sendMessage(note.chatid, "Произошла ошибка, попробуйте еще раз.")
+                                
                             }
+                            bot.sendMessage(note.chatid, "Произошла ошибка, попробуйте еще раз.")
                         })
                     })
-                    let mess = await bot.sendMessage(chatid, 'Мы вернулись в главное меню.', mainmenu)
+                    let mess = await bot.sendMessage(chatid, 'Мы вернулись в главное меню.', await mainmenuBtnCreate(chatid))
                     createChatDB(chatid, mess.message_id)
                     note = 0
                     

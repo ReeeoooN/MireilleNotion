@@ -1,19 +1,39 @@
-mainmenu = {
-    reply_markup: JSON.stringify({
-        inline_keyboard: [
-            [{text: 'Создать уведомление', callback_data: 'noteAdd'}, {text: 'Ежедневное уведомление', callback_data: 'myEdNote'}],
-            [{text: 'Мои уведомления', callback_data: 'myNote'}, {text: 'Дополнительно', callback_data: 'myinfo'}]
-        ]
-    })
+const { usersModel } = require("./bd");
+
+async function mainmenuBtnCreate(chatid) {
+    let res = await usersModel.findOne({where:{id:chatid}})
+    console.log(res);
+    let btnArray = [[{text: 'Создать уведомление', callback_data: 'noteAdd'}, {text: 'Ежедневное уведомление', callback_data: 'myEdNote'}]]
+    if (res.coop == true) {
+        btnArray.push([{text: 'Уведомление другу', callback_data: 'coopNoteAdd'}, {text: 'Друзья', callback_data: 'myFriends'}])
+    }
+    btnArray.push([{text: 'Мои уведомления', callback_data: 'myNote'}, {text: 'Дополнительно', callback_data: 'myinfo'}])
+    if (res.isadmin == true) {
+        btnArray.push([{text: 'admin room', callback_data: 'adminmenu'}])
+    }
+    let btn = {
+        reply_markup: JSON.stringify( {
+            inline_keyboard: btnArray
+        })
+    } 
+    return btn    
 }
-mainmenuadmin = {
-    reply_markup: JSON.stringify({
-        inline_keyboard: [
-            [{text: 'Создать уведомление', callback_data: 'noteAdd'}, {text: 'Ежедневное уведомление', callback_data: 'myEdNote'}],
-            [{text: 'Мои уведомления', callback_data: 'myNote'}, {text: 'Дополнительно', callback_data: 'myinfo'}],
-            [{text: 'admin room', callback_data: 'adminmenu'}]
-        ]
-    })
+
+async function infoMenuBtnCreate (chatid) {
+    let btn = [[{text: 'Сменить часовой пояс', callback_data: 'timediffEdit'}, {text: 'Задонатить', callback_data: 'donate'}]]
+    let res = await usersModel.findOne({where:{id:chatid}})
+    if (res.coop == false) {
+        btn.push([{text: 'Включить совместный режим', callback_data: 'coopModeOn'}])
+    } else {
+        btn.push([{text: 'Выключить совместный режим', callback_data: 'coopModeOff'}])
+    }
+    btn.push([{text: 'Назад', callback_data: 'start'}])
+    btn = {
+        reply_markup: JSON.stringify( {
+            inline_keyboard: btn
+        })
+    } 
+    return btn
 }
 adminbtn = {
     reply_markup: JSON.stringify({
@@ -22,14 +42,7 @@ adminbtn = {
         ]
     })
 }
-infoMenu = {
-    reply_markup: JSON.stringify({
-        inline_keyboard: [
-            [{text: 'Сменить часовой пояс', callback_data: 'timediffEdit'}, {text: 'Задонатить', callback_data: 'donate'}],
-            [{text: 'Назад', callback_data: 'start'}],
-        ]
-    })
-}
+
 
 back = {
     reply_markup: JSON.stringify( {
@@ -101,15 +114,23 @@ getHourfored =  [
             {text: '21:00', callback_data: '21'}, {text: '22:00', callback_data: '22'}, {text: '23:00', callback_data: '23'}],
             [{text: 'Назад', callback_data:'start'}]
         ]
+friendBtn = {
+    reply_markup: JSON.stringify({
+        inline_keyboard: [
+            [{text: 'Добавить друга', callback_data: 'coopAddFriend'}, {text: 'Удалить друга', callback_data: 'coopDelFriend'}], 
+            [{text: 'Назад', callback_data: 'start'}]
+        ]
+    })
+} 
 
 module.exports.eventRedBtn = eventRedBtn
-module.exports.infoMenu =infoMenu
+module.exports.infoMenuBtnCreate = infoMenuBtnCreate
 module.exports.getHour = getHour
 module.exports.getHourfored = getHourfored
-module.exports.mainmenu = mainmenu
 module.exports.back = back
 module.exports.confirm = confirmBtn
 module.exports.getTime = getTime
 module.exports.replyBack = replyBack
-module.exports.mainmenuadmin = mainmenuadmin
 module.exports.adminbtn = adminbtn
+module.exports.mainmenuBtnCreate = mainmenuBtnCreate
+module.exports.friendBtn = friendBtn

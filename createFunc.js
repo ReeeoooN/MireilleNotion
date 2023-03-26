@@ -1,4 +1,4 @@
-const { confirm, getHour, getTime, back, replyBack, mainmenu, eventRedBtn } = require("./botBtn")
+const { confirm, getHour, getTime, back, replyBack, eventRedBtn, mainmenuBtnCreate } = require("./botBtn")
 const { createChatDB, deleteBotMessage } = require("./messdel")
 const { bot } = require("./TelegramAPI")
 const format = require('node.date-time');
@@ -116,7 +116,7 @@ async function creator(note, chatid){
             } else {
                 let newBtn = []
                 for (i=0; i<getHour.length; i++){
-                    newBtn.push(getHour[i])
+                    newBtn.push(getHourfored[i])
                 }
                 btn = {
                     reply_markup: JSON.stringify({
@@ -241,8 +241,9 @@ async function creator(note, chatid){
                                         console.log("Error - " + err);
                                         for (i=0; i<res.length; i++){
                                             bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
-                                            bot.sendMessage(note.chatid, "Произошла ошибка, уведомление не создано, попробуй еще раз.")
+                                            
                                         }
+                                        bot.sendMessage(note.chatid, "Произошла ошибка, уведомление не создано, попробуй еще раз.")
                                     })
                                 })
                                 bot.removeListener('callback_query', dateBuilder)
@@ -295,12 +296,12 @@ async function creator(note, chatid){
                         }
                     } else if (msg.data === 'start') {
                         bot.removeListener('callback_query', dateBuilder)
-                        reject({chatid:chatid,message:mess.message_id})
+                        reject({chatid:note.chatid,message:note.message})
                     }
                 }
                 bot.on('callback_query', dateBuilder)
             }).then(async note=>{
-                let mess = await bot.sendMessage(note.chatid, 'Мы вернулись в главное меню', mainmenu)
+                let mess = await bot.sendMessage(note.chatid, 'Мы вернулись в главное меню', await mainmenuBtnCreate(note.chatid))
                 createChatDB(note.chatid, mess.message_id)
             }).catch(err=>{
                 bot.editMessageText('Ты вернулся в главное меню', {chat_id: err.chatid, message_id:err.message})
@@ -314,7 +315,7 @@ async function creator(note, chatid){
             chatModel.destroy({where:{messageid: err.message}})
             bot.editMessageText('Команда не может быть названием', {chat_id: err.chatid, message_id: err.message})
         } else {
-            let mess = await bot.sendMessage(err.chatid, 'Ты вернулся в главное меню', mainmenu)
+            let mess = await bot.sendMessage(err.chatid, 'Ты вернулся в главное меню', await mainmenuBtnCreate(err.chatid))
             createChatDB(err.chatid, mess.message_id)
             console.log(mess);
         }

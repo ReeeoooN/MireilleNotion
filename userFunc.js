@@ -1,11 +1,11 @@
-const { confirm, getHour, getTime, back, replyBack, mainmenu, eventRedBtn } = require("./botBtn")
+const { confirm, getHour, getTime, back, replyBack, eventRedBtn, mainmenuBtnCreate } = require("./botBtn")
 const { createChatDB, deleteBotMessage } = require("./messdel")
 const { bot } = require("./TelegramAPI")
 const format = require('node.date-time');
-const { usersModel, notesModel, chatModel } = require("./bd");
+const { usersModel, notesModel, chatModel, friendshipModel } = require("./bd");
 const {monthBuilder} = require("./createFunc")
 
-async function userHour(chatid, replace, name) {
+async function userHour(chatid, replace, name, username) {
     let note = {date: 0, hour:0, chatid:chatid, message: 0}
     let year = Number(new Date().format('Y'))
     let month = Number(new Date().format('M'))
@@ -32,38 +32,19 @@ async function userHour(chatid, replace, name) {
         async function regEvent (msg) {
             if(msg.message.chat.id === chatid && msg.data !== 'dick' && msg.data !== 'noteAdd' && msg.data !== 'myNote' && msg.data !== 'start' && msg.data !== 'myEdNote' && msg.data !== 'myinfo') {
                 if (note.date === 0) {
-                    if (msg.data !== 'backmonth' && msg.data !== 'nextmonth' ) {
-                        note.date = msg.data
-                        let newBtn = [[{text: `${new Date(note.date).format('d.M.Y')}`, callback_data: 'dick' }]]
-                        for (i=0; i<getTime.length; i++){
-                            newBtn.push(getTime[i])
-                        }
-                        btn = {
-                            inline_keyboard: newBtn
-                        }
-                        await bot.editMessageText('Хочу определить твой часовой пояс. Который час?',{chat_id: note.chatid, message_id: note.message})
-                        await bot.editMessageReplyMarkup(btn, {chat_id: note.chatid, message_id: note.message})
-                    } else if (msg.data === 'backmonth') {
-                        if(month == 1) {
-                            month = 12
-                            year--
-                        } else {
-                            month--
-                        }
-                        btn = monthBuilder(month, year)
-                        bot.editMessageReplyMarkup(btn, {chat_id: note.chatid, message_id: note.message})
-                    } else if (msg.data === 'nextmonth') {
-                        if (month == 12) {
-                            month = 1
-                            year++ 
-                        } else {
-                            month ++
-                        }
-                        btn = monthBuilder(month, year)
-                        bot.editMessageReplyMarkup(btn, {chat_id: note.chatid, message_id: note.message})
+                    note.date = msg.data
+                    let newBtn = [[{text: `${new Date(note.date).format('d.M.Y')}`, callback_data: 'dick' }]]
+                    for (i=0; i<getTime.length; i++){
+                        newBtn.push(getTime[i])
                     }
+                    newBtn.push([{text: `Назад`, callback_data: 'back' }])
+                    btn = {
+                        inline_keyboard: newBtn
+                    }
+                    await bot.editMessageText('Хочу определить твой часовой пояс. Который час?',{chat_id: note.chatid, message_id: note.message})
+                    await bot.editMessageReplyMarkup(btn, {chat_id: note.chatid, message_id: note.message})    
                 } else if (note.hour === 0) {
-                    if (msg.data !== "hourback" && msg.data !== 'hournext' && msg.data !== 'back') {
+                    if (msg.data !== 'back') {
                         bot.removeListener('callback_query', regEvent)
                         note.hour = msg.data
                         let userDate = new Date(`${note.date} ${note.hour}:00`).getTime()
@@ -74,18 +55,21 @@ async function userHour(chatid, replace, name) {
                         let datediff = (userDate - serverDate)/60/60/1000
 
                         if (replace == false) {
-                            usersModel.create({
+                            await usersModel.create({
                                 id: note.chatid,
                                 timediff: datediff,
                                 name: name,
-                                isadmin: false
+                                username: username,
+                                isadmin: false,
+                                coop: false
                             }).catch(err=>{
                                 usersModel.findAll({where:{isadmin: true}}).then(res=>{
                                     console.log("Error - " + err);
                                     for (i=0; i<res.length; i++){
                                         bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
-                                        bot.sendMessage(note.chatid, "Произошла ошибка, попробуйте еще раз.")
+                                        
                                     }
+                                    bot.sendMessage(note.chatid, "Произошла ошибка, попробуйте еще раз.")
                                 })
                             })
                             bot.editMessageText('Спасибо, я тебя запомнил, благодаря указанному времени я смогу отправлять тебе уведомления в твоем часовом поясе', {chat_id: note.chatid, message_id: note.message})
@@ -101,36 +85,23 @@ async function userHour(chatid, replace, name) {
                             bot.editMessageText('Спасибо, данные изменил', {chat_id: note.chatid, message_id: note.message})
                         }
                         resolve(note.chatid)
-                    } else if (msg.data === "hourback") {
-                        const oneDay = 1000 * 60 * 60 * 24; 
-                        note.date = new Date(note.date).getTime() - oneDay
-                        note.date = new Date(note.date).format('Y-M-d')
-                        let backday = [[{text: `${new Date(note.date).format('d.M.Y')}`, callback_data: 'dick' }]]
-                        for (i=0; i<getTime.length; i++){
-                            backday.push(getTime[i])
-                        }
-                        btn = {
-                            inline_keyboard: backday
-                        }
-                        bot.editMessageReplyMarkup(btn, {chat_id: note.chatid, message_id: note.message})
-                    } else if (msg.data === "hournext") {
-                        const oneDay = 1000 * 60 * 60 * 24; 
-                        note.date = new Date(note.date).getTime() + oneDay
-                        note.date = new Date(note.date).format('Y-M-d')
-                        let backday = [[{text: `${new Date(note.date).format('d.M.Y')}`, callback_data: 'dick' }]]
-                        for (i=0; i<getTime.length; i++){
-                            backday.push(getTime[i])
-                        }
-                        btn = {
-                            inline_keyboard: backday
-                        }
-                        bot.editMessageReplyMarkup(btn, {chat_id: note.chatid, message_id: note.message})
                     } else if (msg.data === 'back') {
                         note.date = 0
-                        let year = Number(new Date().format('Y'))
-                        let month = Number(new Date().format('M'))
-                        btn = monthBuilder(month, year)
-                        bot.editMessageReplyMarkup(btn, {chat_id: note.chatid, message_id: note.message})
+                        let btn = {
+                            inline_keyboard: [
+                                [{text: `${new Date (btnDateBack).format('d.M.Y')}`, callback_data: `${new Date (btnDateBack).format('Y-M-d')}`},
+                                {text: `${new Date ().format('d.M.Y')}`, callback_data: `${new Date ().format('Y-M-d')}`},
+                                {text: `${new Date (btnDateNext).format('d.M.Y')}`, callback_data: `${new Date (btnDateNext).format('Y-M-d')}`}
+                                ],
+                            ]
+                        } 
+                        if (replace == false) {
+                            await bot.editMessageText('Хочу определить твой часовой пояс. укажи дату',{chat_id: note.chatid, message_id: note.message})
+                            await bot.editMessageReplyMarkup(btn, {chat_id: note.chatid, message_id: note.message})
+                        } else {
+                            await bot.editMessageText('Хочу изменить твой часовой пояс. укажи дату',{chat_id: note.chatid, message_id: note.message})
+                            await bot.editMessageReplyMarkup(btn, {chat_id: note.chatid, message_id: note.message})
+                        }
                     }
                 } 
             } else if (msg.data === 'start') {
@@ -140,7 +111,7 @@ async function userHour(chatid, replace, name) {
         }
         bot.on('callback_query', regEvent)
     }).then(async res=>{
-        let mess = await bot.sendMessage(res, 'Создадим напоминание?', mainmenu)
+        let mess = await bot.sendMessage(res, 'Создадим уведомление?', await mainmenuBtnCreate(res))
         createChatDB(res, mess.message_id)
     }).catch(err=>{
         bot.editMessageText('Без указания даты я не смогу отправлять уведомления в твоем часовом поясе. Ты можешь попробовать еще раз по команде /start', {chat_id: err.chatid, message_id: err.message})
