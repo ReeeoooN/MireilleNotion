@@ -1,3 +1,7 @@
+const { phraseModel } = require("./bd")
+const { adminbtn } = require("./botBtn")
+const { bot } = require("./TelegramAPI");
+
 function fuck (chatid) {
     notesModel.findAll({where:{everyday:true}}).then(async res=>{
         for(i=0;i<res.length;i++){
@@ -43,6 +47,38 @@ async function updateSend(chatid) {
     bot.sendMessage(chatid, 'done', back)
 }
 
+async function sendnotetext(chatid) {
+    async function createPhrase(msg) {
+        if (msg.chat.id == chatid){
+            bot.removeListener('message', createPhrase)
+            phraseModel.create({
+                phrase: msg.text,
+                type: 'note'
+            })
+            bot.sendMessage(chatid, 'Complete', adminbtn)
+        }
+    }
+    bot.on('message', createPhrase)
+    bot.sendMessage(chatid, 'Send')
+}
+
+async function salutationphrase(chatid) {
+    async function createPhrase(msg) {
+        if (msg.chat.id == chatid){
+            bot.removeListener('message', createPhrase)
+            phraseModel.create({
+                phrase: msg.text,
+                type: 'salutation'
+            })
+            bot.sendMessage(chatid, 'Complete', adminbtn)
+        }
+    }
+    bot.on('message', createPhrase)
+    bot.sendMessage(chatid, 'Send')
+}
+
 module.exports.sorrySend = sorrySend
 module.exports.updateSend = updateSend
 module.exports.fuck = fuck
+module.exports.sendnotetext =sendnotetext
+module.exports.salutationphrase = salutationphrase

@@ -1,11 +1,16 @@
-const { usersModel } = require("./bd");
+const { usersModel, friendshipModel } = require("./bd");
 
 async function mainmenuBtnCreate(chatid) {
     let res = await usersModel.findOne({where:{id:chatid}})
     console.log(res);
     let btnArray = [[{text: 'Создать уведомление', callback_data: 'noteAdd'}, {text: 'Ежедневное уведомление', callback_data: 'myEdNote'}]]
     if (res.coop == true) {
-        btnArray.push([{text: 'Уведомление другу', callback_data: 'coopNoteAdd'}, {text: 'Друзья', callback_data: 'myFriends'}])
+        let friendCheck = await friendshipModel.findOne({where:{chatid:chatid, confirm:true}})
+        if (!friendCheck) {
+            btnArray.push([{text: 'Друзья', callback_data: 'myFriends'}])
+        } else {
+            btnArray.push([{text: 'Уведомление другу', callback_data: 'coopNote'}, {text: 'Друзья', callback_data: 'myFriends'}])
+        }
     }
     btnArray.push([{text: 'Мои уведомления', callback_data: 'myNote'}, {text: 'Дополнительно', callback_data: 'myinfo'}])
     if (res.isadmin == true) {
@@ -27,6 +32,7 @@ async function infoMenuBtnCreate (chatid) {
     } else {
         btn.push([{text: 'Выключить совместный режим', callback_data: 'coopModeOff'}])
     }
+    btn.push([{text: 'Сменить имя', callback_data: 'changeName'}])
     btn.push([{text: 'Назад', callback_data: 'start'}])
     btn = {
         reply_markup: JSON.stringify( {
@@ -39,10 +45,19 @@ adminbtn = {
     reply_markup: JSON.stringify({
         inline_keyboard: [
             [{text: 'restart notion', callback_data: 'noterest'}, {text: 'send sorry', callback_data: 'sorrysend'}, {text: 'send update', callback_data: 'updatesend'}],
+            [{text: 'salutation create', callback_data: 'salutationphraseadd'}, {text: 'Send note text create', callback_data: 'sendnotetextadd'}], 
+            [{text: 'Назад', callback_data: 'start'}],
         ]
     })
 }
-
+coopNote = {
+    reply_markup: JSON.stringify({
+        inline_keyboard: [
+            [{text: 'Обычное уведомление', callback_data: 'coopNoteAdd'}, {text: 'Ежедневное уведомление', callback_data: 'coopEdNote'}],
+            [{text: 'Назад', callback_data: 'start'}],
+        ]
+    })
+}
 
 back = {
     reply_markup: JSON.stringify( {
@@ -114,14 +129,29 @@ getHourfored =  [
             {text: '21:00', callback_data: '21'}, {text: '22:00', callback_data: '22'}, {text: '23:00', callback_data: '23'}],
             [{text: 'Назад', callback_data:'start'}]
         ]
-friendBtn = {
-    reply_markup: JSON.stringify({
-        inline_keyboard: [
-            [{text: 'Добавить друга', callback_data: 'coopAddFriend'}, {text: 'Удалить друга', callback_data: 'coopDelFriend'}], 
-            [{text: 'Назад', callback_data: 'start'}]
-        ]
-    })
-} 
+
+async function friendBtn(chatid) {
+    let friendCheck = await friendshipModel.findOne({where:{chatid:chatid}})
+    let subscribersCheck = await friendshipModel.findOne({where:{friendid:chatid}})
+    let btn = []
+    if (!friendCheck) {
+        btn.push([{text: 'Добавить друга', callback_data: 'coopAddFriend'}])
+    } else {
+        btn.push([{text: 'Добавить друга', callback_data: 'coopAddFriend'}, {text: 'Удалить друга', callback_data: 'coopDelFriend'}])
+    }
+    if (!subscribersCheck) {
+        btn.push([{text: 'Назад', callback_data: 'start'}])
+    } else {
+        btn.push([{text: 'Запретить присылать уведомления', callback_data: 'subscriberDel'}])
+        btn.push([{text: 'Назад', callback_data: 'start'}])
+    }
+    btn = {
+        reply_markup: JSON.stringify( {
+            inline_keyboard: btn
+        })
+    } 
+    return btn  
+}
 
 module.exports.eventRedBtn = eventRedBtn
 module.exports.infoMenuBtnCreate = infoMenuBtnCreate
@@ -134,3 +164,4 @@ module.exports.replyBack = replyBack
 module.exports.adminbtn = adminbtn
 module.exports.mainmenuBtnCreate = mainmenuBtnCreate
 module.exports.friendBtn = friendBtn
+module.exports.coopNote = coopNote

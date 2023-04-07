@@ -1,4 +1,4 @@
-const { confirm, getHour, getTime, back, replyBack, eventRedBtn, mainmenuBtnCreate } = require("./botBtn")
+const { confirm, getHour, getTime, mainmenuBtnCreate, } = require("./botBtn")
 const { createChatDB, deleteBotMessage } = require("./messdel")
 const { bot } = require("./TelegramAPI")
 const format = require('node.date-time');
@@ -106,7 +106,7 @@ async function userHour(chatid, replace, name, username) {
                 } 
             } else if (msg.data === 'start') {
                 bot.removeListener('callback_query', regEvent)
-                reject({chatid:chatid,message:mess.message_id})
+                reject({chatid:chatid,message:note.message})
             }
         }
         bot.on('callback_query', regEvent)
@@ -118,4 +118,39 @@ async function userHour(chatid, replace, name, username) {
     })
 }
 
+async function NameChanger(chatid){
+    usersModel.findOne({where:{id:chatid}}).then(async user=>{
+        let prom = new Promise (async(resolve, reject)=>{
+            async function confirmFunc (msg) {
+                
+                if (msg.message.chat.id == chatid){
+                    if (msg.data == 'confirmanswer') {
+                        bot.removeListener('callback_query', confirmFunc)
+                        resolve(msg.message.message_id)
+                    }
+                } else {
+                    bot.removeListener('callback_query', confirmFunc)
+                    reject(msg.message.message_id)
+                }
+            }
+            bot.on('callback_query', confirmFunc)
+            let mess = await bot.sendMessage(chatid, `Текущее имя ${user.name}, хочешь поменять?`, confirm)
+        }).then(async message=>{
+            async function newName(msg) {
+                if (msg.chat.id == chatid) {
+                    bot.removeListener('message', newName)
+                    usersModel.update({name:msg.text}, {where:{id:chatid}})
+                    bot.sendMessage(chatid, `${msg.text}, я запомнил`, await mainmenuBtnCreate(chatid))
+                }
+            }
+            bot.on('message', newName)
+            bot.editMessageText('Как к тебе обращаться?', {chat_id: chatid, message_id: message})
+        }).catch(message=>{
+            bot.editMessageText('Вернулись в главное меню', {chat_id: chatid, message_id: message})
+        })
+        
+    })
+}
+
 module.exports.userHour = userHour
+module.exports.NameChanger = NameChanger
