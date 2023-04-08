@@ -37,7 +37,8 @@ bot.on('message', async msg=>{
                 if (user.username == null) {
                     usersModel.update({username: msg.from.username}, {where: {id:msg.chat.id}})
                 }
-                let mess = await bot.sendMessage(msg.chat.id, `${await phraseRand('note', msg.chat.id)}`, await mainmenuBtnCreate(msg.chat.id))
+                await bot.sendMessage(msg.chat.id, await phraseRand('salutation', msg.chat.id))
+                let mess = await bot.sendMessage(msg.chat.id, `Создадим уведомление?`, await mainmenuBtnCreate(msg.chat.id))
                 createChatDB(msg.chat.id, mess.message_id)
             }
         })
@@ -81,7 +82,7 @@ bot.on('callback_query', async msg=>{
             }
             if (msg.data === 'coopNote'){
                 bot.deleteMessage(msg.from.id, msg.message.message_id)
-                bot.sendMessage(msg.message.chat.id, 'Какое уведомление создадим другу?',coopNote)
+                bot.sendMessage(msg.message.chat.id, 'Какое уведомление создадим другу?\n P.S. Уведомление создавай в своем часовом поясе, я все посчитаю сам:)',coopNote)
             }
             if (msg.data === 'myinfo') {
                 bot.deleteMessage(msg.from.id, msg.message.message_id)
