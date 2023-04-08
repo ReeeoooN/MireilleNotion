@@ -1,4 +1,4 @@
-const { confirm, getHour, getTime, back, replyBack, mainmenu, eventRedBtn } = require("./botBtn")
+const { confirm, getHour, getTime, back, replyBack, eventRedBtn, mainmenuBtnCreate } = require("./botBtn")
 const { createChatDB, deleteBotMessage } = require("./messdel")
 const { bot } = require("./TelegramAPI")
 const format = require('node.date-time');
@@ -102,8 +102,8 @@ async function editNotesdate (note) {
                     if (note.everyday == 1) {
                         bot.removeListener('callback_query', dateBuilder)
                         bot.deleteMessage(chatid, mess)
-                        let message = await bot.sendMessage(chatid, 'Ты вернулся в главное меню', mainmenu)
-                        createChatDB(chatid, message.message_id)
+                        let mess = await bot.sendMessage(chatid, 'Ты вернулся в главное меню', await mainmenuBtnCreate(chatid))
+                        createChatDB(chatid, mess.message_id)
                     } else {
                         note.date = 0
                         let year = Number(new Date().format('Y'))
@@ -138,11 +138,12 @@ async function editNotesdate (note) {
                             console.log("Error - " + err);
                             for (i=0; i<res.length; i++){
                                 bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
-                                bot.sendMessage(note.chatid, "Произошла ошибка, попробуйте еще раз.")
+                                
                             }
+                            bot.sendMessage(note.chatid, "Произошла ошибка, попробуйте еще раз.")
                         })
                     })
-                    let mess = await bot.sendMessage(chatid, 'Мы вернулись в главное меню.', mainmenu)
+                    let mess = await bot.sendMessage(chatid, 'Мы вернулись в главное меню.', await mainmenuBtnCreate(chatid))
                     createChatDB(chatid, mess.message_id)
                     note = 0
                     
@@ -201,7 +202,6 @@ async function editNotesdate (note) {
 }
 
 async function selectNotes (chatid) {
-    deleteBotMessage(chatid)
     notesModel.findAll({where:{chatid:chatid}, raw:true}).then(async res=>{
         if (res.length>0) {
             async function listener(msg) {
@@ -213,7 +213,6 @@ async function selectNotes (chatid) {
                             break
                         }
                     }
-                    chatModel.destroy({where:{messageid: msg.message.message_id}})
                     bot.editMessageText(`Уведомление "${res[index].notename}" было удалено`, {chat_id: res[0].chatid, message_id: msg.message.message_id})
                     notesModel.destroy({where:{id: msg.data.slice(4)}})
                 }
@@ -288,6 +287,14 @@ async function selectNotes (chatid) {
                         }
                         if (res[index].chatid === msg.message.chat.id && msg.data === 'start'){
                             bot.deleteMessage(res[index].chatid, mess)
+                            await chatModel.findAll({where:{chatid:chatid}}).then(res=>{
+                                if (res.length > 0) {
+                                   for(i=0;i<res.length;i++){
+                                    bot.deleteMessage(res[i].chatid,res[i].messageid)
+                                    chatModel.destroy({where:{messageid: res[i].messageid}})
+                                   }
+                                }
+                            })
                             bot.removeListener('callback_query', notered)
                         }
                     }
@@ -296,16 +303,14 @@ async function selectNotes (chatid) {
                 }
                 if(msg.message.chat.id === res[0].chatid && (msg.data === 'start' || msg.data === 'noteAdd' || msg.data === 'myNote' || msg.data === 'myinfo' || msg.data === 'myEdNote')) {
                     bot.removeListener('callback_query', listener)
-                    if (msg.data !== 'start') {
-                        chatModel.findAll({where:{chatid:chatid}}).then(res=>{
-                            if (res.length > 0) {
-                               for(i=0;i<res.length;i++){
-                                bot.deleteMessage(res[i].chatid,res[i].messageid)
-                                chatModel.destroy({where:{messageid: res[i].messageid}})
-                               }
-                            }
-                        })
-                    }
+                    chatModel.findAll({where:{chatid:chatid}}).then(res=>{
+                        if (res.length > 0) {
+                           for(i=0;i<res.length;i++){
+                            bot.deleteMessage(res[i].chatid,res[i].messageid)
+                            chatModel.destroy({where:{messageid: res[i].messageid}})
+                           }
+                        }
+                    })
                 }
             }
             bot.on('callback_query', listener)
@@ -328,12 +333,10 @@ async function selectNotes (chatid) {
                     createChatDB(res[i].chatid, mess.message_id)
                 }
             }
-            let mess = await bot.sendMessage(res[0].chatid, 'Это были все уведомления', back)
-            createChatDB(res[0].chatid, mess.message_id)
+            bot.sendMessage(res[0].chatid, 'Это были все уведомления', back)
 
         } else {
-            let mess = await bot.sendMessage(chatid, 'Уведомлений нет', back)
-            createChatDB(chatid, mess.message_id)
+            await bot.sendMessage(chatid, 'Уведомлений нет', back)
         }
     })
 }

@@ -1,7 +1,8 @@
-const { confirm, getHour, getTime, back, replyBack, mainmenu, eventRedBtn } = require("./botBtn")
+const { confirm, getHour, getTime, back, replyBack, eventRedBtn, mainmenuBtnCreate } = require("./botBtn")
 const { createChatDB, deleteBotMessage } = require("./messdel")
 const { bot } = require("./TelegramAPI")
 const format = require('node.date-time');
+const { delBtnCreator } = require('./coopFunc')
 const { usersModel, notesModel, chatModel } = require("./bd");
 
 function monthBuilder(month, year) {
@@ -68,6 +69,34 @@ function monthBuilder(month, year) {
     return btn;
 }
 
+async function preCreator({everyday, coop, chatid}){
+    let note = {date: 0, hour: 0, min: 0, eventName: 0, chatid: chatid, message: 0, everyday: false, coop: false, coopid: 0}
+    if (everyday == true) {
+        note.everyday =true
+        note.date = new Date ().format('Y-M-d')
+    }
+    if (coop == true) {
+        note.coop = true
+        let mess = await bot.sendMessage(chatid, 'Кому отправим уведомление?')
+        async function addUser (msg) {
+            if (msg.message.chat.id == chatid && msg.data != 'start') {
+                bot.removeListener('callback_query', addUser)
+                bot.deleteMessage(chatid, mess.message_id)
+                note.coopid = msg.data
+                creator(note, chatid)
+            } else if (msg.message.chat.id == chatid && msg.data == 'start') {
+                bot.removeListener('callback_query', addUser)
+                bot.deleteMessage(chatid, mess.message_id)
+            }
+        }
+        bot.editMessageReplyMarkup(await delBtnCreator('friend', chatid), {chat_id: chatid, message_id: mess.message_id})
+        bot.on('callback_query', addUser)
+    } else {
+        creator(note, chatid)
+    }
+    
+}
+
 async function creator(note, chatid){
     let mess = await bot.sendMessage(chatid, 'Введи название события', replyBack)
     createChatDB(chatid, mess.message_id)
@@ -116,7 +145,7 @@ async function creator(note, chatid){
             } else {
                 let newBtn = []
                 for (i=0; i<getHour.length; i++){
-                    newBtn.push(getHour[i])
+                    newBtn.push(getHourfored[i])
                 }
                 btn = {
                     reply_markup: JSON.stringify({
@@ -231,20 +260,43 @@ async function creator(note, chatid){
                                 let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
                                 let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
                                 date = new Date(date).setHours(new Date(date).getHours()-user.timediff)
-                                await notesModel.create({
-                                    chatid: note.chatid,
-                                    notedate: `${new Date(date).format(`Y-M-d H:m`)}`,
-                                    notename: note.eventName,
-                                    everyday: note.everyday
-                                }).catch(err=>{
-                                    usersModel.findAll({where:{isadmin: true}}).then(res=>{
-                                        console.log("Error - " + err);
-                                        for (i=0; i<res.length; i++){
-                                            bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
+                                if (note.coop == false) {
+                                    await notesModel.create({
+                                        chatid: note.chatid,
+                                        notedate: `${new Date(date).format(`Y-M-d H:m`)}`,
+                                        notename: note.eventName,
+                                        everyday: note.everyday
+                                    }).catch(err=>{
+                                        usersModel.findAll({where:{isadmin: true}}).then(res=>{
+                                            console.log("Error - " + err);
+                                            for (i=0; i<res.length; i++){
+                                                bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
+                                                
+                                            }
                                             bot.sendMessage(note.chatid, "Произошла ошибка, уведомление не создано, попробуй еще раз.")
-                                        }
+                                        })
                                     })
-                                })
+                                } else {
+                                    await notesModel.create({
+                                        chatid: note.coopid,
+                                        notedate: `${new Date(date).format(`Y-M-d H:m`)}`,
+                                        notename: note.eventName,
+                                        everyday: note.everyday,
+                                        coop: true
+                                    }).then(async res=>{
+                                        let user = await usersModel.findOne({where:{id:note.chatid}})
+                                        bot.sendMessage(note.coopid, `Было создано уведомление от ${user.name}, оно отобразится в "Мои уведомления"`)
+                                    }).catch(err=>{
+                                        usersModel.findAll({where:{isadmin: true}}).then(res=>{
+                                            console.log("Error - " + err);
+                                            for (i=0; i<res.length; i++){
+                                                bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
+                                                
+                                            }
+                                            bot.sendMessage(note.chatid, "Произошла ошибка, уведомление не создано, попробуй еще раз.")
+                                        })
+                                    })
+                                }
                                 bot.removeListener('callback_query', dateBuilder)
                                 resolve(note)
                             } else if (msg.data === "minback") {
@@ -300,7 +352,7 @@ async function creator(note, chatid){
                 }
                 bot.on('callback_query', dateBuilder)
             }).then(async note=>{
-                let mess = await bot.sendMessage(note.chatid, 'Мы вернулись в главное меню', mainmenu)
+                let mess = await bot.sendMessage(note.chatid, 'Мы вернулись в главное меню', await mainmenuBtnCreate(note.chatid))
                 createChatDB(note.chatid, mess.message_id)
             }).catch(err=>{
                 bot.editMessageText('Ты вернулся в главное меню', {chat_id: err.chatid, message_id:err.message})
@@ -314,9 +366,8 @@ async function creator(note, chatid){
             chatModel.destroy({where:{messageid: err.message}})
             bot.editMessageText('Команда не может быть названием', {chat_id: err.chatid, message_id: err.message})
         } else {
-            let mess = await bot.sendMessage(err.chatid, 'Ты вернулся в главное меню', mainmenu)
-            createChatDB(err.chatid, mess.message_id)
-            console.log(mess);
+            let mess = await bot.sendMessage(err.chatid, 'Ты вернулся в главное меню', await mainmenuBtnCreate(err.chatid))
+            createChatDB(note.chatid, mess.message_id)
         }
     })
 }
@@ -324,3 +375,4 @@ async function creator(note, chatid){
 
 module.exports.monthBuilder = monthBuilder;
 module.exports.creator = creator;
+module.exports.preCreator = preCreator
