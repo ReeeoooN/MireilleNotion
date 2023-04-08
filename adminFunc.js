@@ -47,28 +47,13 @@ async function updateSend(chatid) {
     bot.sendMessage(chatid, 'done', back)
 }
 
-async function sendnotetext(chatid) {
+async function phrase(chatid, type) {
     async function createPhrase(msg) {
         if (msg.chat.id == chatid){
             bot.removeListener('message', createPhrase)
             phraseModel.create({
                 phrase: msg.text,
-                type: 'note'
-            })
-            bot.sendMessage(chatid, 'Complete', adminbtn)
-        }
-    }
-    bot.on('message', createPhrase)
-    bot.sendMessage(chatid, 'Send')
-}
-
-async function salutationphrase(chatid) {
-    async function createPhrase(msg) {
-        if (msg.chat.id == chatid){
-            bot.removeListener('message', createPhrase)
-            phraseModel.create({
-                phrase: msg.text,
-                type: 'salutation'
+                type: type
             })
             bot.sendMessage(chatid, 'Complete', adminbtn)
         }
@@ -80,5 +65,4 @@ async function salutationphrase(chatid) {
 module.exports.sorrySend = sorrySend
 module.exports.updateSend = updateSend
 module.exports.fuck = fuck
-module.exports.sendnotetext =sendnotetext
-module.exports.salutationphrase = salutationphrase
+module.exports.phrase = phrase

@@ -1,7 +1,7 @@
 const { infoMenuBtnCreate, adminbtn, mainmenuBtnCreate, back, coopNote } = require("./botBtn");
 const { bot } = require("./TelegramAPI");
 const { selectNotes,} = require('./editNoteFunc');
-const {fuck, sorrySend, updateSend, sendnotetext, salutationphrase} = require("./adminFunc")
+const {fuck, sorrySend, updateSend, phrase} = require("./adminFunc")
 const { createChatDB, deleteBotMessage } = require("./messdel");
 const { chatModel, usersModel, notesModel, friendshipModel } = require("./bd");
 const { creator, preCreator } = require("./createFunc");
@@ -136,11 +136,11 @@ bot.on('callback_query', async msg=>{
             }
             if (msg.data == "salutationphraseadd") {
                 bot.deleteMessage(msg.from.id, msg.message.message_id)
-                salutationphrase(msg.message.chat.id)
+                phrase(msg.message.chat.id, 'salutation')
             }
             if (msg.data == "sendnotetextadd") {
                 bot.deleteMessage(msg.from.id, msg.message.message_id)
-                sendnotetext(msg.message.chat.id)
+                phrase(msg.message.chat.id, 'note')
             }
             if (msg.data == 'coopModeOn') {
                 bot.deleteMessage(msg.from.id, msg.message.message_id)
