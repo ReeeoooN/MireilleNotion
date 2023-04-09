@@ -33,6 +33,11 @@ async function infoMenuBtnCreate (chatid) {
         btn.push([{text: 'Выключить совместный режим', callback_data: 'coopModeOff'}])
     }
     btn.push([{text: 'Сменить имя', callback_data: 'changeName'}])
+    if (res.repeaton == false) {
+        btn.push([{text: 'Включить повтор уведомлений', callback_data: 'repeatModeOn'}])
+    } else {
+        btn.push([{text: 'Выключить повтор уведомлений', callback_data: 'repeatModeOff'}])
+    }
     btn.push([{text: 'Назад', callback_data: 'start'}])
     btn = {
         reply_markup: JSON.stringify( {
@@ -49,6 +54,11 @@ adminbtn = {
             [{text: 'Назад', callback_data: 'start'}],
         ]
     })
+}
+repeatBtn = {
+    inline_keyboard: [
+        [{text: 'Понял', callback_data: ''}],
+    ]
 }
 coopNote = {
     reply_markup: JSON.stringify({
@@ -165,3 +175,4 @@ module.exports.adminbtn = adminbtn
 module.exports.mainmenuBtnCreate = mainmenuBtnCreate
 module.exports.friendBtn = friendBtn
 module.exports.coopNote = coopNote
+module.exports.repeatBtn = repeatBtn

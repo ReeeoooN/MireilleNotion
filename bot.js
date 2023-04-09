@@ -1,14 +1,15 @@
-const { infoMenuBtnCreate, adminbtn, mainmenuBtnCreate, back, coopNote } = require("./botBtn");
+const { infoMenuBtnCreate, adminbtn, mainmenuBtnCreate, back, coopNote, repeatBtn } = require("./botBtn");
 const { bot } = require("./TelegramAPI");
 const { selectNotes,} = require('./editNoteFunc');
 const {fuck, sorrySend, updateSend, phrase} = require("./adminFunc")
 const { createChatDB, deleteBotMessage } = require("./messdel");
-const { chatModel, usersModel, notesModel, friendshipModel } = require("./bd");
+const { chatModel, usersModel, notesModel, friendshipModel, noterepeatModel } = require("./bd");
 const { creator, preCreator } = require("./createFunc");
 const { userHour, NameChanger } = require("./userFunc");
 const { userAddFriend, userShowFriend, confirmInvite, coopDeleteFr } = require("./coopFunc")
-const { where } = require("sequelize");
 const { phraseRand } = require("./dynamicAnswers");
+const { notesSender, repeatSender } = require("./senderFunc");
+const { stopRepeating } = require("./repeatFunc");
 
 bot.setMyCommands( [
     {command: '/start', description: 'Начать'}
@@ -46,6 +47,7 @@ bot.on('message', async msg=>{
 })
 
 bot.on('callback_query', async msg=>{
+    let data = msg.data
     console.log(msg);
     usersModel.findOne({where: {id:msg.message.chat.id}}).then(async user=>{
         if(!user) {
@@ -155,6 +157,18 @@ bot.on('callback_query', async msg=>{
                 let mess = await bot.sendMessage(msg.message.chat.id, "Совместный режим был выключен", await mainmenuBtnCreate(msg.message.chat.id))
                 createChatDB(msg.message.chat.id, mess.message_id)
             }
+            if (msg.data == 'repeatModeOn') {
+                bot.deleteMessage(msg.from.id, msg.message.message_id)
+                await usersModel.update({repeaton:true}, {where: {id:msg.message.chat.id}})
+                let mess = await bot.sendMessage(msg.message.chat.id, "Повтор уведомлений включен", await mainmenuBtnCreate(msg.message.chat.id))
+                createChatDB(msg.message.chat.id, mess.message_id)
+            }
+            if (msg.data == 'repeatModeOff') {
+                bot.deleteMessage(msg.from.id, msg.message.message_id)
+                await usersModel.update({repeaton:false}, {where: {id:msg.message.chat.id}})
+                let mess = await bot.sendMessage(msg.message.chat.id, "Повтор уведомлений выключен", await mainmenuBtnCreate(msg.message.chat.id))
+                createChatDB(msg.message.chat.id, mess.message_id)
+            }
             if (msg.data == "myFriends") {
                 bot.deleteMessage(msg.from.id, msg.message.message_id)
                 userShowFriend(msg.message.chat.id)
@@ -171,10 +185,14 @@ bot.on('callback_query', async msg=>{
                 bot.deleteMessage(msg.message.chat.id, msg.message.message_id)
                 coopDeleteFr(msg.from.id, 'subscriber')
             }
-            if (msg.data.indexOf('inviteFriend')!== -1) {
+            if (data.indexOf('inviteFriend')!== -1) {
                 bot.deleteMessage(msg.from.id, msg.message.message_id)
                 let inviteObj = JSON.parse(msg.data)
                 confirmInvite(inviteObj, msg.message.message_id, msg.from.id)           
+            }
+            if (data.indexOf('repeatBtn')!== -1) {
+                let repeatObj = JSON.parse(msg.data)
+                stopRepeating(msg.message.chat.id, repeatObj)           
             }
         }
     })
@@ -182,29 +200,8 @@ bot.on('callback_query', async msg=>{
     
 })
 
-async function notesSender(){ 
-    let serverTime = new Date ().setSeconds(00)
-    if (new Date(serverTime).getMinutes()%5 == 0) {
-        serverTime = new Date (serverTime).setMilliseconds(00)
-    serverTime = new Date (serverTime).getTime()
-    let notesArray = await notesModel.findAll({raw:true})
-    for (i=0;i<notesArray.length;i++){
-        let noteTime = new Date (notesArray[i].notedate).getTime()
-        if (serverTime == noteTime) {
-            let phrase = await phraseRand('note', notesArray[i].chatid)
-            phrase = phrase.replace('%напоминание%',notesArray[i].notename)
-            bot.sendMessage(notesArray[i].chatid, phrase)
-            if (notesArray[i].everyday == 1) {
-                let notedate = new Date(notesArray[i].notedate)
-                notedate.setDate(notedate.getDate()+1)
-                notedate.setSeconds(00)
-                notesModel.update({notedate: new Date(notedate).format('Y-M-d H:m')}, {where: {id:notesArray[i].id}})
-            } else {
-                notesModel.destroy({where:{id:notesArray[i].id}})
-            }
-        }
-    }
-    }
-}
+
 notesSender()
 setInterval(notesSender, 60000)
+repeatSender()
+setInterval(repeatSender, 60000)
