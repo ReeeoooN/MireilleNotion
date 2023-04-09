@@ -51,6 +51,7 @@ adminbtn = {
         inline_keyboard: [
             [{text: 'restart notion', callback_data: 'noterest'}, {text: 'send sorry', callback_data: 'sorrysend'}, {text: 'send update', callback_data: 'updatesend'}],
             [{text: 'salutation create', callback_data: 'salutationphraseadd'}, {text: 'Send note text create', callback_data: 'sendnotetextadd'}], 
+            [{text: 'log on', callback_data: 'logon'}, {text: 'log off', callback_data: 'logoff'}], 
             [{text: 'Назад', callback_data: 'start'}],
         ]
     })

@@ -3,7 +3,8 @@ const { createChatDB, deleteBotMessage } = require("./messdel")
 const { bot } = require("./TelegramAPI")
 const format = require('node.date-time');
 const { usersModel, notesModel, chatModel, friendshipModel } = require("./bd");
-const {monthBuilder} = require("./createFunc")
+const {monthBuilder} = require("./createFunc");
+const { logAdd } = require("./logFunc");
 
 async function userHour(chatid, replace, name, username) {
     let note = {date: 0, hour:0, chatid:chatid, message: 0}
@@ -62,6 +63,9 @@ async function userHour(chatid, replace, name, username) {
                                 username: username,
                                 isadmin: false,
                                 coop: false
+                            }).then(res=>{
+                                logAdd(`Reg user ${JSON.stringify(res)}`)
+                                bot.editMessageText('Спасибо, я тебя запомнил, благодаря указанному времени я смогу отправлять тебе уведомления в твоем часовом поясе', {chat_id: note.chatid, message_id: note.message})
                             }).catch(err=>{
                                 usersModel.findAll({where:{isadmin: true}}).then(res=>{
                                     console.log("Error - " + err);
@@ -72,7 +76,6 @@ async function userHour(chatid, replace, name, username) {
                                     bot.sendMessage(note.chatid, "Произошла ошибка, попробуйте еще раз.")
                                 })
                             })
-                            bot.editMessageText('Спасибо, я тебя запомнил, благодаря указанному времени я смогу отправлять тебе уведомления в твоем часовом поясе', {chat_id: note.chatid, message_id: note.message})
                         } else {
                             let usersData = await usersModel.findOne({where: {id:chatid}, raw:true})
                             usersData.timediff = datediff - usersData.timediff
@@ -83,6 +86,7 @@ async function userHour(chatid, replace, name, username) {
                                 notesModel.update({notedate: new Date(notesDate).format('Y-M-d H:m:S')}, {where: {id: notesArr[i].id}})
                             }
                             bot.editMessageText('Спасибо, данные изменил', {chat_id: note.chatid, message_id: note.message})
+                            logAdd(`Change timediff ${datediff} ${JSON.stringify(note)}`)
                         }
                         resolve(note.chatid)
                     } else if (msg.data === 'back') {
@@ -141,6 +145,7 @@ async function NameChanger(chatid){
                     bot.removeListener('message', newName)
                     usersModel.update({name:msg.text}, {where:{id:chatid}})
                     bot.sendMessage(chatid, `${msg.text}, я запомнил`, await mainmenuBtnCreate(chatid))
+                    logAdd(`Change name ${msg.text}`)
                 }
             }
             bot.on('message', newName)

@@ -1,8 +1,10 @@
-const { phraseModel } = require("./bd")
-const { adminbtn } = require("./botBtn")
+const { phraseModel, notesModel, usersModel} = require("./bd");
+const { adminbtn, back } = require("./botBtn");
+const { logAdd } = require("./logFunc");
 const { bot } = require("./TelegramAPI");
 
 function fuck (chatid) {
+
     notesModel.findAll({where:{everyday:true}}).then(async res=>{
         for(i=0;i<res.length;i++){
             let noteDate = new Date (res[i].notedate)
@@ -15,7 +17,7 @@ function fuck (chatid) {
             }
         }
         let mess = await bot.sendMessage(chatid, "done", back)
-        createChatDB(chatid, mess.message_id)
+        await logAdd(`Restarting note`)
     })
 }
 
@@ -25,7 +27,8 @@ async function sorrySend(chatid) {
             bot.sendMessage(users[i].id, `Разбежавшись прыгнул со скалы... И сломался я. \n Сейчас я работаю, ежедневные уведомления, о которых я не уведомил, сработают завтра, сорри. Обычные уведомления можно отредактировать или удалить по кнопке "Мои уведомления"`)
         }
     })
-    bot.sendMessage(chatid, 'done', back)
+    let mess = await bot.sendMessage(chatid, 'done', back)
+    logAdd(`Send sorry`)
 }
 
 async function updateSend(chatid) {
@@ -44,7 +47,8 @@ async function updateSend(chatid) {
             str = '';
         }
     })
-    bot.sendMessage(chatid, 'done', back)
+    let mess = await bot.sendMessage(chatid, 'done', back)
+    logAdd(`Send update`)
 }
 
 async function phrase(chatid, type) {
@@ -59,9 +63,16 @@ async function phrase(chatid, type) {
         }
     }
     bot.on('message', createPhrase)
-    bot.sendMessage(chatid, 'Send')
+    let mess = await bot.sendMessage(chatid, 'Send')
+    logAdd(`Create phrase ${type}`)
 }
 
+async function loging(chatid, type) {
+    usersModel.update({logon:type}, {where:{id:chatid}})
+    bot.sendMessage(chatid, 'done', back)
+}
+
+module.exports.loging = loging
 module.exports.sorrySend = sorrySend
 module.exports.updateSend = updateSend
 module.exports.fuck = fuck

@@ -3,7 +3,8 @@ const { createChatDB, deleteBotMessage } = require("./messdel")
 const { bot } = require("./TelegramAPI")
 const format = require('node.date-time');
 const { usersModel, notesModel, chatModel } = require("./bd");
-const {monthBuilder} = require("./createFunc")
+const {monthBuilder} = require("./createFunc");
+const { logAdd } = require("./logFunc");
 
 async function editNotesdate (note) {
     let year = Number(new Date().format('Y'))
@@ -143,6 +144,7 @@ async function editNotesdate (note) {
                             bot.sendMessage(note.chatid, "Произошла ошибка, попробуйте еще раз.")
                         })
                     })
+                    logAdd(`Change note ${JSON.stringify(note)}`)
                     let mess = await bot.sendMessage(chatid, 'Мы вернулись в главное меню.', await mainmenuBtnCreate(chatid))
                     createChatDB(chatid, mess.message_id)
                     note = 0
@@ -213,6 +215,7 @@ async function selectNotes (chatid) {
                             break
                         }
                     }
+                    logAdd(`Delete note ${res[index].id}, note was created ${res[index].createdAt}`)
                     bot.editMessageText(`Уведомление "${res[index].notename}" было удалено`, {chat_id: res[0].chatid, message_id: msg.message.message_id})
                     notesModel.destroy({where:{id: msg.data.slice(4)}})
                 }
@@ -268,6 +271,7 @@ async function selectNotes (chatid) {
                             async function redName (msg) {
                                 if (res[index].chatid === msg.chat.id && msg.text !== '/start') {
                                     notesModel.update({notename:msg.text}, {where:{id:res[index].id}})
+                                    logAdd(`Change note name ${msg.text}`)
                                     bot.deleteMessage(res[index].chatid, mess)
                                     let message = await bot.sendMessage(res[index].chatid, `Название было изменено на "${msg.text}"`, back)
                                     bot.removeListener('message', redName)

@@ -1,9 +1,8 @@
-const { getHour, getTime, back, replyBack, eventRedBtn, mainmenuBtnCreate, friendBtn } = require("./botBtn")
+const { back, replyBack, mainmenuBtnCreate, friendBtn } = require("./botBtn")
 const { createChatDB, deleteBotMessage } = require("./messdel")
 const { bot } = require("./TelegramAPI")
-const format = require('node.date-time');
-const { usersModel, notesModel, chatModel, friendshipModel } = require("./bd");
-const {monthBuilder} = require("./createFunc")
+const { usersModel, friendshipModel } = require("./bd");
+const { logAdd } = require("./logFunc");
 
 async function userShowFriend(chatid) {
     let friends = await friendshipModel.findAll({where:{chatid:chatid}, raw:true})
@@ -34,6 +33,7 @@ async function userShowFriend(chatid) {
         friendlist = friendlist + 'Пока тебе никто не может отправить уведомления, ты можешь сообщить свой ID другу.'
     }
     bot.sendMessage(chatid, friendlist, await friendBtn(chatid))
+    logAdd(`Friend list: \n ${friendlist}`)
 }
 
 async function userAddFriend (chatid, name) {
@@ -99,6 +99,7 @@ async function userAddFriend (chatid, name) {
 }
 
 async function confirmInvite(obj, message, chatid) {
+    logAdd(`Confirm Invite ${JSON.stringify(obj)}`)
     friendshipModel.findOne({where:{id:obj.inviteFriend}}).then(res=>{
         if (obj.confirm == true) {
             friendshipModel.update({confirm:true}, {where:{id:obj.inviteFriend}})
@@ -117,6 +118,7 @@ async function coopDeleteFr (chatid, who) {
     let mess = await bot.sendMessage(chatid, 'Кого удалим?')
     async function deleter (msg) {
         if (msg.message.chat.id == chatid && msg.data != 'start') {
+            logAdd(`Delete ${who} ${msg.data}`)
             if (who == 'friend') {
                 friendshipModel.destroy({where:{friendid:msg.data, chatid:chatid}})
             } else {

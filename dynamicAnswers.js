@@ -2,7 +2,6 @@ const { phraseModel, usersModel } = require("./bd");
 
 async function phraseRand(type, chatid) {
     let res = await phraseModel.findAll({where:{type:type}, raw:true})
-    console.log(res);
     let user = await usersModel.findOne({where:{id:chatid}})
     let phraseaArr = []
     for (let index = 0; index < res.length; index++) {
