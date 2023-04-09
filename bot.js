@@ -1,21 +1,23 @@
-const { infoMenuBtnCreate, adminbtn, mainmenuBtnCreate, back, coopNote, repeatBtn } = require("./botBtn");
+const { infoMenuBtnCreate, adminbtn, mainmenuBtnCreate, coopNote } = require("./botBtn");
 const { bot } = require("./TelegramAPI");
 const { selectNotes,} = require('./editNoteFunc');
-const {fuck, sorrySend, updateSend, phrase} = require("./adminFunc")
-const { createChatDB, deleteBotMessage } = require("./messdel");
-const { chatModel, usersModel, notesModel, friendshipModel, noterepeatModel } = require("./bd");
-const { creator, preCreator } = require("./createFunc");
+const {fuck, sorrySend, updateSend, phrase, loging, } = require("./adminFunc")
+const { createChatDB } = require("./messdel");
+const { chatModel, usersModel } = require("./bd");
+const { preCreator } = require("./createFunc");
 const { userHour, NameChanger } = require("./userFunc");
 const { userAddFriend, userShowFriend, confirmInvite, coopDeleteFr } = require("./coopFunc")
 const { phraseRand } = require("./dynamicAnswers");
 const { notesSender, repeatSender } = require("./senderFunc");
 const { stopRepeating } = require("./repeatFunc");
+const { logAdd } = require("./logFunc");
 
+logAdd(`######################## bot start ########################`)
 bot.setMyCommands( [
     {command: '/start', description: 'Начать'}
 ]) // Стандартные команды
 bot.on('message', async msg=>{ 
-    console.log(msg);
+    logAdd(`Message from ${msg.from.username}. "Text" ${msg.text}`)
     if(msg.text === '/start') {
         chatModel.findAll({where:{chatid:msg.chat.id}}).then(res=>{
             for (i=0;i<res.length;i++){
@@ -47,8 +49,8 @@ bot.on('message', async msg=>{
 })
 
 bot.on('callback_query', async msg=>{
+    logAdd(`Callback from ${msg.message.chat.username}. Data "${msg.data}"`)
     let data = msg.data
-    console.log(msg);
     usersModel.findOne({where: {id:msg.message.chat.id}}).then(async user=>{
         if(!user) {
             if (msg.data == 'noteAdd' || msg.data === 'myNote' || msg.data === 'myEdNote' || msg.data === 'myinfo' || msg.data === 'donate' || msg.data === 'timediffEdit' || msg.data == 'start') {
@@ -143,6 +145,14 @@ bot.on('callback_query', async msg=>{
             if (msg.data == "sendnotetextadd") {
                 bot.deleteMessage(msg.from.id, msg.message.message_id)
                 phrase(msg.message.chat.id, 'note')
+            }
+            if (msg.data == "logon") {
+                bot.deleteMessage(msg.from.id, msg.message.message_id)
+                loging(msg.message.chat.id, true)
+            }
+            if (msg.data == "logoff") {
+                bot.deleteMessage(msg.from.id, msg.message.message_id)
+                loging(msg.message.chat.id, false)
             }
             if (msg.data == 'coopModeOn') {
                 bot.deleteMessage(msg.from.id, msg.message.message_id)

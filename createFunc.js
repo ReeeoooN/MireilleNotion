@@ -4,6 +4,7 @@ const { bot } = require("./TelegramAPI")
 const format = require('node.date-time');
 const { delBtnCreator } = require('./coopFunc')
 const { usersModel, notesModel, chatModel } = require("./bd");
+const { logAdd } = require("./logFunc");
 
 function monthBuilder(month, year) {
     let nextmonth;
@@ -70,6 +71,7 @@ function monthBuilder(month, year) {
 }
 
 async function preCreator({everyday, coop, chatid}){
+    logAdd(`PreCreate everyday:${everyday}, coop:${coop}`)
     let note = {date: 0, hour: 0, min: 0, eventName: 0, chatid: chatid, message: 0, everyday: false, coop: false, coopid: 0}
     if (everyday == true) {
         note.everyday =true
@@ -352,6 +354,7 @@ async function creator(note, chatid){
                 }
                 bot.on('callback_query', dateBuilder)
             }).then(async note=>{
+                logAdd(`Created note ${JSON.stringify(note)}`)
                 let mess = await bot.sendMessage(note.chatid, 'Мы вернулись в главное меню', await mainmenuBtnCreate(note.chatid))
                 createChatDB(note.chatid, mess.message_id)
             }).catch(err=>{
