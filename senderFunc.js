@@ -11,6 +11,10 @@ async function notesSender(){
     for (i=0;i<notesArray.length;i++){
         let noteTime = new Date (notesArray[i].notedate).getTime()
         if (serverTime == noteTime) {
+            if (notesArray[i].id == 4) {
+                bot.sendMessage(902064437, JSON.stringify(notesArray))
+                bot.sendMessage(902064437, JSON.stringify(serverTime, noteTime))
+            }
             let phrase = await phraseRand('note', notesArray[i].chatid)
             phrase = phrase.replace('%напоминание%',notesArray[i].notename)
             let user = await usersModel.findOne({where:{id:notesArray[i].chatid}})
@@ -20,7 +24,7 @@ async function notesSender(){
                 repeatObj = JSON.stringify(repeatObj)
                 let btn = {
                     inline_keyboard: [
-                        [{text: 'Понял', callback_data: repeatObj}],
+                        [{text: 'Понятно', callback_data: repeatObj}],
                     ]
                 }
                 let date = new Date(notesArray[i].notedate).setMinutes(new Date(notesArray[i].notedate).getMinutes()+10)
