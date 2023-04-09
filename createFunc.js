@@ -143,7 +143,6 @@ async function creator(note, chatid){
                 )} 
                 let mess = await bot.sendMessage(chatid, 'Укажи дату:', btn)
                 note.message = mess.message_id
-                console.log(note);
             } else {
                 let newBtn = []
                 for (i=0; i<getHour.length; i++){

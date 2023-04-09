@@ -117,7 +117,6 @@ async function editNotesdate (note) {
                 if (msg.data !== "minback" && msg.data !== 'minnext' && msg.data !== 'back') {
                     await bot.removeListener('callback_query', dateBuilder)
                     note.min = msg.data
-                    console.log(note);
                     if (note.everyday === 1){
                         let noteDate = new Date (note.date)
                         noteDate = new Date (noteDate).setHours(note.hour)

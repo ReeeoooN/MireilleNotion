@@ -2,7 +2,6 @@ const { usersModel, friendshipModel } = require("./bd");
 
 async function mainmenuBtnCreate(chatid) {
     let res = await usersModel.findOne({where:{id:chatid}})
-    console.log(res);
     let btnArray = [[{text: 'Создать уведомление', callback_data: 'noteAdd'}, {text: 'Ежедневное уведомление', callback_data: 'myEdNote'}]]
     if (res.coop == true) {
         let friendCheck = await friendshipModel.findOne({where:{chatid:chatid, confirm:true}})
