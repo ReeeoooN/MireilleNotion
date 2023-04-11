@@ -13,12 +13,16 @@ async function notesSender(){
         for (i=0;i<notesArray.length;i++){
             let noteTime = new Date (notesArray[i].notedate).getTime()
             if (serverTime == noteTime) {
+                logAdd(`Sending ${JSON.stringify(notesArray[i])} \n index ${i}`)
                 logAdd(`Sending note ${notesArray[i].id} ${new Date(notesArray[i].notedate)} `)
                 logAdd(`In UNIX - ${noteTime}`)
                 let phrase = await phraseRand('note', notesArray[i].chatid)
                 phrase = phrase.replace('%напоминание%',notesArray[i].notename)
                 let user = await usersModel.findOne({where:{id:notesArray[i].chatid}})
-                let mess = await bot.sendMessage(notesArray[i].chatid, phrase)
+                let mess 
+                if (notesArray[i].id != 3) {
+                    mess = await bot.sendMessage(notesArray[i].chatid, phrase)
+                }
                 if (user.repeaton == true) {
                     let repeatObj = {repeatBtn: notesArray[i].id, mess: mess.message_id}
                     repeatObj = JSON.stringify(repeatObj)
