@@ -191,18 +191,6 @@ async function creator(note, chatid){
                         } else if (note.hour === 0) {
                             if (msg.data !== "hourback" && msg.data !== 'hournext' && msg.data !== 'back') {
                                 note.hour = msg.data
-                                if (note.everyday == true) {
-                                    let noteDate = new Date (note.date)
-                                    noteDate = new Date (noteDate).setHours(note.hour)
-                                    noteDate = new Date (noteDate).setMinutes(note.min)
-                                    noteDate = new Date (noteDate).getTime()
-                                    let dateNow = new Date()
-                                    dateNow =new Date(dateNow).getTime()
-                                    if (noteDate < dateNow) {
-                                        noteDate = new Date (noteDate).setDate(new Date (noteDate).getDate()+1)
-                                        note.date = new Date (noteDate).format('Y-M-d')
-                                    }
-                                }
                                 let newBtn = [[{text: `${new Date(note.date).format('d.M.Y')} время ${note.hour}:`, callback_data: 'dick' }]]
                                 let getmin = [
                                     [{text: `${note.hour}:00`, callback_data: '00'}, {text: `${note.hour}:05`, callback_data: '05'}, {text: `${note.hour}:10`, callback_data: '10'},
@@ -252,6 +240,18 @@ async function creator(note, chatid){
                         } else if (note.min === 0) {
                             if (msg.data !== "minback" && msg.data !== 'minnext' && msg.data !== 'back') {
                                 note.min = msg.data
+                                if (note.everyday == true) {
+                                    let noteDate = new Date (note.date)
+                                    noteDate = new Date (noteDate).setHours(note.hour)
+                                    noteDate = new Date (noteDate).setMinutes(note.min)
+                                    noteDate = new Date (noteDate).getTime()
+                                    let dateNow = new Date()
+                                    dateNow =new Date(dateNow).getTime()
+                                    if (noteDate < dateNow) {
+                                        noteDate = new Date (noteDate).setDate(new Date (noteDate).getDate()+1)
+                                        note.date = new Date (noteDate).format('Y-M-d')
+                                    }
+                                }
                                 if (note.everyday == true) {
                                     bot.editMessageText(`Напомню про "${note.eventName}" в ${note.hour}:${note.min}`, {chat_id:note.chatid,message_id:note.message})
                                 } else {
