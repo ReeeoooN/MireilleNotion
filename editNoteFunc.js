@@ -133,7 +133,7 @@ async function editNotesdate (note) {
                     let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
                     let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
                     date = new Date(date).setHours(new Date(date).getHours()-user.timediff)
-                    await notesModel.update({notedate: `${new Date(date).format(`Y-M-d H:m`)}`}, {where:{id: note.id}}).catch(err=>{
+                    await notesModel.update({notedate: new Date(date).setHours(new Date(date).getHours()+5)}, {where:{id: note.id}}).catch(err=>{
                         usersModel.findAll({where:{isadmin: true}}).then(res=>{
                             console.log("Error - " + err);
                             for (i=0; i<res.length; i++){
@@ -327,7 +327,7 @@ async function selectNotes (chatid) {
                     })
                 }
                 let date = new Date(res[i].notedate)
-                date = date.setHours(date.getHours()+user.timediff)
+                date = date.setHours(date.getHours()+user.timediff-5)
                 if (res[i].everyday == 1) {
                     let mess = await bot.sendMessage(res[i].chatid, `Ежедневное уведомление "${res[i].notename}" - ${new Date(date).format('h:m')}`, delBtn) 
                     createChatDB(res[i].chatid, mess.message_id)

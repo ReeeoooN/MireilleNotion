@@ -198,6 +198,7 @@ async function creator(note, chatid){
                                     {text: `${note.hour}:15`, callback_data: '15'}, {text: `${note.hour}:20`, callback_data: '20'}, {text: `${note.hour}:25`, callback_data: '25'}, ],
                                     [{text: `${note.hour}:30`, callback_data: '30'}, {text: `${note.hour}:35`, callback_data: '35'}, {text: `${note.hour}:40`, callback_data: '40'},
                                     {text: `${note.hour}:45`, callback_data: '45'}, {text: `${note.hour}:50`, callback_data: '50'}, {text: `${note.hour}:55`, callback_data: '55'}, ],
+                                    [{text: 'Указать минуты вручную', callback_data: 'minhandmode'}],
                                     [{text: '<', callback_data: 'minback'}, {text: 'Назад', callback_data:'back'}, {text: '>', callback_data: 'minnext'}]
                                 ]
                                 for (i=0; i<getmin.length; i++){
@@ -239,7 +240,7 @@ async function creator(note, chatid){
                                 bot.editMessageReplyMarkup(btn, {chat_id: note.chatid, message_id: note.message})
                             }
                         } else if (note.min === 0) {
-                            if (msg.data !== "minback" && msg.data !== 'minnext' && msg.data !== 'back') {
+                            if (msg.data !== "minback" && msg.data !== 'minnext' && msg.data !== 'back' && msg.data != 'minhandmode') {
                                 note.min = msg.data
                                 if (note.everyday == true) {
                                     let noteDate = new Date (note.date)
@@ -260,7 +261,7 @@ async function creator(note, chatid){
                                 }
                                 let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
                                 let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
-                                date = new Date(date).setHours(new Date(date).getHours()-user.timediff)
+                                date = new Date(date).setHours(new Date(date).getHours()-user.timediff+5)
                                 if (note.coop == false) {
                                     await notesModel.create({
                                         chatid: note.chatid,
@@ -280,7 +281,7 @@ async function creator(note, chatid){
                                 } else {
                                     await notesModel.create({
                                         chatid: note.coopid,
-                                        notedate: `${new Date(date).format(`Y-M-d H:m`)}`,
+                                        notedate: new Date(date),
                                         notename: note.eventName,
                                         everyday: note.everyday,
                                         coop: true
@@ -344,6 +345,79 @@ async function creator(note, chatid){
                                     inline_keyboard: newBtn
                                 }
                                 bot.editMessageReplyMarkup(btn, {chat_id: note.chatid, message_id: note.message})
+                            } else if (msg.data === 'minhandmode') {
+                                bot.removeListener('callback_query', dateBuilder)
+                                async function minAdd(msg) {
+                                    if (msg.text >= 0 && msg.text < 60) {
+                                        note.min = msg.text
+                                        if (note.everyday == true) {
+                                            let noteDate = new Date (note.date)
+                                            noteDate = new Date (noteDate).setHours(note.hour)
+                                            noteDate = new Date (noteDate).setMinutes(note.min)
+                                            noteDate = new Date (noteDate).getTime()
+                                            let dateNow = new Date()
+                                            dateNow =new Date(dateNow).getTime()
+                                            if (noteDate < dateNow) {
+                                                noteDate = new Date (noteDate).setDate(new Date (noteDate).getDate()+1)
+                                                note.date = new Date (noteDate).format('Y-M-d')
+                                            }
+                                        }
+                                        if (note.everyday == true) {
+                                            bot.editMessageText(`Напомню про "${note.eventName}" в ${note.hour}:${note.min}`, {chat_id:note.chatid,message_id:note.message})
+                                        } else {
+                                            bot.editMessageText(`Напомню про "${note.eventName}" ${new Date(note.date).format('d.M.Y')} в ${note.hour}:${note.min}`, {chat_id:note.chatid,message_id:note.message})
+                                        }
+                                        let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
+                                        let date = new Date(note.date).setMilliseconds(0)
+                                        date = new Date(date).setSeconds(0)
+                                        date = new Date(date).setMinutes(note.min)
+                                        date = new Date(date).setHours(note.hour)
+                                        date = new Date(date).setHours(new Date(date).getHours()-user.timediff+5)
+                                        if (note.coop == false) {
+                                            await notesModel.create({
+                                                chatid: note.chatid,
+                                                notedate: new Date(date),
+                                                notename: note.eventName,
+                                                everyday: note.everyday
+                                            }).catch(err=>{
+                                                usersModel.findAll({where:{isadmin: true}}).then(res=>{
+                                                    console.log("Error - " + err);
+                                                    for (i=0; i<res.length; i++){
+                                                        bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
+                                                        
+                                                    }
+                                                    bot.sendMessage(note.chatid, "Произошла ошибка, уведомление не создано, попробуй еще раз.")
+                                                })
+                                            })
+                                        } else {
+                                            await notesModel.create({
+                                                chatid: note.coopid,
+                                                notedate: new Date(date),
+                                                notename: note.eventName,
+                                                everyday: note.everyday,
+                                                coop: true
+                                            }).then(async res=>{
+                                                let user = await usersModel.findOne({where:{id:note.chatid}})
+                                                bot.sendMessage(note.coopid, `Было создано уведомление от ${user.name}, оно отобразится в "Мои уведомления"`)
+                                            }).catch(err=>{
+                                                usersModel.findAll({where:{isadmin: true}}).then(res=>{
+                                                    console.log("Error - " + err);
+                                                    for (i=0; i<res.length; i++){
+                                                        bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
+                                                        
+                                                    }
+                                                    bot.sendMessage(note.chatid, "Произошла ошибка, уведомление не создано, попробуй еще раз.")
+                                                })
+                                            })
+                                        }
+                                        bot.removeListener('message', minAdd)
+                                        resolve(note)
+                                    } else {
+                                        bot.sendMessage(note.chatid, 'Минуты указал неверно, укажи число от 0 до 59')
+                                    }
+                                }
+                                bot.on('message', minAdd)
+                                bot.editMessageText('Введи минуты', {chat_id: note.chatid, message_id: note.message})
                             }
                         }
                     } else if (msg.data === 'start') {

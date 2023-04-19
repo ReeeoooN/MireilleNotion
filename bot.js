@@ -8,7 +8,7 @@ const { preCreator } = require("./createFunc");
 const { userHour, NameChanger } = require("./userFunc");
 const { userAddFriend, userShowFriend, confirmInvite, coopDeleteFr } = require("./coopFunc")
 const { phraseRand } = require("./dynamicAnswers");
-const { notesSender, repeatSender } = require("./senderFunc");
+const { noteSender, repeatSender } = require("./senderFunc");
 const { stopRepeating } = require("./repeatFunc");
 const { logAdd } = require("./logFunc");
 
@@ -210,8 +210,7 @@ bot.on('callback_query', async msg=>{
     
 })
 
-
-notesSender()
-setInterval(notesSender, 60000)
+noteSender()
+setInterval(noteSender, 1000)
 repeatSender()
-setInterval(repeatSender, 60000)
+setInterval(repeatSender, 1000)
