@@ -22,7 +22,7 @@ async function noteSender() {
                 repeatObj = JSON.stringify(repeatObj)
                 let btn = {
                     inline_keyboard: [
-                        [{text: 'Понятно', callback_data: repeatObj}],
+                        [{text: 'Спасибо', callback_data: repeatObj}],
                     ]
                 }
                 noterepeatModel.create({
