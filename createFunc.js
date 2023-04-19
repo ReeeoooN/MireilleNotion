@@ -393,9 +393,6 @@ async function creator(note, chatid){
                                                 notename: note.eventName,
                                                 everyday: note.everyday,
                                                 coop: true
-                                            }).then(async res=>{
-                                                let user = await usersModel.findOne({where:{id:note.chatid}})
-                                                bot.sendMessage(note.coopid, `Было создано уведомление от ${user.name}, оно отобразится в "Мои уведомления"`)
                                             }).catch(err=>{
                                                 usersModel.findAll({where:{isadmin: true}}).then(res=>{
                                                     console.log("Error - " + err);
