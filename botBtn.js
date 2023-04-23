@@ -2,16 +2,16 @@ const { usersModel, friendshipModel } = require("./bd");
 
 async function mainmenuBtnCreate(chatid) {
     let res = await usersModel.findOne({where:{id:chatid}})
-    let btnArray = [[{text: 'Создать уведомление', callback_data: 'noteAdd'}, {text: 'Ежедневное уведомление', callback_data: 'myEdNote'}]]
+    let btnArray = [[{text: 'Создать уведомление', callback_data: 'noteAdd'}]]
     if (res.coop == true) {
-        let friendCheck = await friendshipModel.findOne({where:{chatid:chatid, confirm:true}})
+        let friendCheck = await friendshipModel.findOne({where:{chatid:chatid}})
         if (!friendCheck) {
-            btnArray.push([{text: 'Друзья', callback_data: 'myFriends'}])
+            btnArray.push([{text: 'Мои уведомления', callback_data: 'myNote'}, {text: 'Дополнительно', callback_data: 'myinfo'}])
         } else {
-            btnArray.push([{text: 'Уведомление другу', callback_data: 'coopNote'}, {text: 'Друзья', callback_data: 'myFriends'}])
+            btnArray.push([{text: 'Друзья', callback_data: 'myFriends'}])
+            btnArray.push([{text: 'Мои уведомления', callback_data: 'myNote'}, {text: 'Дополнительно', callback_data: 'myinfo'}])
         }
     }
-    btnArray.push([{text: 'Мои уведомления', callback_data: 'myNote'}, {text: 'Дополнительно', callback_data: 'myinfo'}])
     if (res.isadmin == true) {
         btnArray.push([{text: 'admin room', callback_data: 'adminmenu'}])
     }
@@ -21,6 +21,95 @@ async function mainmenuBtnCreate(chatid) {
         })
     } 
     return btn    
+}
+
+async function notePreCrBtn (note){
+    let friendCheck = await friendshipModel.findOne({where:{chatid:note.chatid, confirm:true}})
+    let btnArray = []
+    console.log(note.type);
+    if (note.type == 'simple') {
+        btnArray.push([{text: '✔Обычное', callback_data: 'simplenote'}, {text: 'Ежедневное', callback_data: 'ednote'}, {text: 'Переодическое', callback_data: 'pernote'}])
+    } else if (note.type == 'ed') {
+        btnArray.push([{text: 'Обычное', callback_data: 'simplenote'}, {text: '✔Ежедневное', callback_data: 'ednote'}, {text: 'Переодическое', callback_data: 'pernote'}])
+    } else if (note.type == 'period') {
+        btnArray.push([{text: 'Обычное', callback_data: 'simplenote'}, {text: 'Ежедневное', callback_data: 'ednote'}, {text: '✔Переодическое', callback_data: 'pernote'}])
+    } else if (note.type ==  null) {
+        btnArray.push([{text: 'Обычное', callback_data: 'simplenote'}, {text: 'Ежедневное', callback_data: 'ednote'}, {text: 'Переодическое', callback_data: 'pernote'}])
+    }
+    if (!friendCheck) {
+        if (note.type == null) {
+            btnArray.push([{text: 'Назад', callback_data: 'start'}])
+        } else {
+            btnArray.push([{text: 'Готово', callback_data: 'notedone'}, {text: 'Назад', callback_data: 'start'}])
+        }
+    } else {
+        if (note.coop == true) {
+            btnArray.push([{text: 'Уведомление себе', callback_data: 'selfnote'}, {text: '✔Уведомление Другу', callback_data: 'friendnote'}])
+        } else {
+            btnArray.push([{text: '✔Уведомление себе', callback_data: 'selfnote'}, {text: 'Уведомление Другу', callback_data: 'friendnote'}])
+        }
+        if (note.type == null) {
+            btnArray.push([{text: 'Назад', callback_data: 'start'}])
+        } else {
+            btnArray.push([{text: 'Готово', callback_data: 'notedone'}, {text: 'Назад', callback_data: 'start'}])
+        }
+    }
+    let btn = {
+        inline_keyboard: btnArray
+    } 
+    return btn 
+}
+
+async function periodBtn (period) {
+    let btnArray = []
+    if (period.type == null) {
+        btnArray.push([{text: 'По дням недели', callback_data: 'perweek'}, {text: 'Раз в месяц', callback_data: 'permount'}], [{text: 'Раз в несколько дней', callback_data: 'perday'}], [{text: 'Назад', callback_data: 'perback'}])
+    } else if (period.type == 'perweek') {
+        if (period.data.mon == true) {
+            btnArray.push([{text: '✔Понедельник', callback_data: 'monper'}])
+        } else {
+            btnArray.push([{text: 'Понедельник', callback_data: 'monper'}])
+        }
+        if (period.data.tue == true) {
+            btnArray.push([{text: '✔Вторник', callback_data: 'tueper'}])
+        } else {
+            btnArray.push([{text: 'Вторник', callback_data: 'tueper'}])
+        }
+        if (period.data.wed == true) {
+            btnArray.push([{text: '✔Среда', callback_data: 'wedper'}])
+        } else {
+            btnArray.push([{text: 'Среда', callback_data: 'wedper'}])
+        }
+        if (period.data.thu == true) {
+            btnArray.push([{text: '✔Четверг', callback_data: 'thuper'}])
+        } else {
+            btnArray.push([{text: 'Четверг', callback_data: 'thuper'}])
+        }
+        if (period.data.fri == true) {
+            btnArray.push([{text: '✔Пятница', callback_data: 'friper'}])
+        } else {
+            btnArray.push([{text: 'Пятница', callback_data: 'friper'}])
+        }
+        if (period.data.sat == true) {
+            btnArray.push([{text: '✔Суббота', callback_data: 'satper'}])
+        } else {
+            btnArray.push([{text: 'Суббота', callback_data: 'satper'}])
+        }
+        if (period.data.sun == true) {
+            btnArray.push([{text: '✔Воскресенье', callback_data: 'sunper'}])
+        } else {
+            btnArray.push([{text: 'Воскресенье', callback_data: 'sunper'}])
+        }
+        btnArray.push([{text: 'Готово', callback_data: 'perdone'}, {text: 'Назад', callback_data: 'backtoper'}])
+    } else if (period.type == 'permount') {
+        btnArray.push([{text: 'Готово', callback_data: 'perdone'}, {text: 'Назад', callback_data: 'backtoper'}])
+    } else if (period.type == 'perday') {
+        btnArray.push([{text: 'Готово', callback_data: 'perdone'}, {text: 'Назад', callback_data: 'backtoper'}])
+    }
+    let btn = {
+        inline_keyboard: btnArray
+    } 
+    return btn
 }
 
 async function infoMenuBtnCreate (chatid) {
@@ -100,7 +189,7 @@ replyBack = {
 confirmBtn = {
     reply_markup: JSON.stringify({
         inline_keyboard: [
-            [{text: 'Да', callback_data: 'confirmanswer'}, {text: 'Нет, назад', callback_data: 'start'}]
+            [{text: 'Да', callback_data: 'confirmanswer'}, {text: 'Нет, назад', callback_data: 'nameback'}]
         ]
     })
 }
@@ -176,3 +265,5 @@ module.exports.mainmenuBtnCreate = mainmenuBtnCreate
 module.exports.friendBtn = friendBtn
 module.exports.coopNote = coopNote
 module.exports.repeatBtn = repeatBtn
+module.exports.notePreCrBtn =notePreCrBtn
+module.exports.periodBtn =periodBtn

@@ -117,7 +117,7 @@ async function coopDeleteFr (chatid, who) {
     
     let mess = await bot.sendMessage(chatid, 'Кого удалим?')
     async function deleter (msg) {
-        if (msg.message.chat.id == chatid && msg.data != 'start') {
+        if (msg.message.chat.id == chatid && msg.data != 'coopbackbtn') {
             logAdd(`Delete ${who} ${msg.data}`)
             if (who == 'friend') {
                 friendshipModel.destroy({where:{friendid:msg.data, chatid:chatid}})
@@ -125,9 +125,10 @@ async function coopDeleteFr (chatid, who) {
                 friendshipModel.destroy({where:{chatid:msg.data, friendid: chatid}})
             }
             await bot.editMessageReplyMarkup(await delBtnCreator(who, chatid), {chat_id: chatid, message_id: mess.message_id})
-        } else if (msg.message.chat.id == chatid && msg.data == 'start') {
+        } else if (msg.message.chat.id == chatid && msg.data == 'coopbackbtn') {
             bot.removeListener('callback_query', deleter)
             bot.deleteMessage(chatid, mess.message_id)
+            bot.sendMessage(chatid, 'Вернулись в главное меню', await mainmenuBtnCreate(chatid))
         }
     }
     bot.editMessageReplyMarkup(await delBtnCreator(who, chatid), {chat_id: chatid, message_id: mess.message_id})
@@ -141,7 +142,7 @@ async function delBtnCreator(who, chatid) {
             for (let index = 0; index < res.length; index++) {
                 btn.push([{text: `${index+1}. ${res[index].friendname}`, callback_data: res[index].friendid}])          
             }
-            btn.push([{text: 'Назад', callback_data: 'start'}])
+            btn.push([{text: 'Назад', callback_data: 'coopbackbtn'}])
             btn = {
                 inline_keyboard: btn
             }
@@ -152,7 +153,7 @@ async function delBtnCreator(who, chatid) {
             for (let index = 0; index < res.length; index++) {
                 btn.push([{text: `${index+1}. ${res[index].name}`, callback_data: res[index].chatid}])          
             }
-            btn.push([{text: 'Назад', callback_data: 'start'}])
+            btn.push([{text: 'Назад', callback_data: 'coopbackbtn'}])
             btn = {
                 inline_keyboard: btn
             }

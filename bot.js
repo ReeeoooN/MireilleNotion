@@ -66,27 +66,12 @@ bot.on('callback_query', async msg=>{
             }
             if (msg.data == 'noteAdd') {
                 bot.deleteMessage(msg.from.id, msg.message.message_id)
-                preCreator({everyday: false, coop: false, chatid: msg.from.id})
+                note = {chatid: msg.message.chat.id, message:0, coop: false, coopid: null, type: null, period:null, stade: 'giveParam', date: 0, hour: 0, min: 0, eventName: null}
+                preCreator(note)
             }
             if (msg.data === 'myNote') {
                 bot.deleteMessage(msg.from.id, msg.message.message_id)
                 selectNotes(msg.message.chat.id)
-            }
-            if (msg.data === 'myEdNote') {
-                bot.deleteMessage(msg.from.id, msg.message.message_id)
-                preCreator({everyday: true, coop: false, chatid: msg.from.id})
-            }
-            if (msg.data === 'coopNoteAdd') {
-                bot.deleteMessage(msg.from.id, msg.message.message_id)
-                preCreator({everyday: false, coop: true, chatid: msg.from.id})
-            }
-            if (msg.data === 'coopEdNote') {
-                bot.deleteMessage(msg.from.id, msg.message.message_id)
-                preCreator({everyday: true, coop: true, chatid: msg.from.id})
-            }
-            if (msg.data === 'coopNote'){
-                bot.deleteMessage(msg.from.id, msg.message.message_id)
-                bot.sendMessage(msg.message.chat.id, 'Какое уведомление создадим другу?\n P.S. Уведомление создавай в своем часовом поясе, я все посчитаю сам:)',coopNote)
             }
             if (msg.data === 'myinfo') {
                 bot.deleteMessage(msg.from.id, msg.message.message_id)

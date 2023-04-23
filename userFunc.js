@@ -3,7 +3,7 @@ const { createChatDB, deleteBotMessage } = require("./messdel")
 const { bot } = require("./TelegramAPI")
 const format = require('node.date-time');
 const { usersModel, notesModel, chatModel, friendshipModel } = require("./bd");
-const {monthBuilder} = require("./createFunc");
+const {monthBuilder} = require("./createFuncold");
 const { logAdd } = require("./logFunc");
 
 async function userHour(chatid, replace, name, username) {
