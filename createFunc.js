@@ -449,7 +449,9 @@ async function selectMin (note) {
                         }
                     }
                     note.stade = 'create'
-                    note.hour = Number(note.hour) + 5
+                    let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
+                    date = new Date(date).setHours(new Date(date).getHours()+5)
+                    note.hour = new Date(date).getHours()
                     bot.deleteMessage(note.chatid, note.message)
                     preCreator(note)
                 } else if (msg.data === "minback") {
@@ -519,6 +521,9 @@ async function selectMin (note) {
                             bot.removeListener('message', minAdd)
                             note.stade = 'create'
                             bot.deleteMessage(note.chatid, note.message)
+                            let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
+                            date = new Date(date).setHours(new Date(date).getHours()+5)
+                            note.hour = new Date(date).getHours()
                             preCreator(note)
                         } else {
                             bot.sendMessage(note.chatid, 'Минуты указал неверно, укажи число от 0 до 59')
@@ -537,6 +542,7 @@ async function creator (note) {
     let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
     let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
     date = new Date(date).setHours(new Date(date).getHours()-user.timediff)
+    console.log(new Date (date));
     let chatid, coopid
     if (note.coop == false) {
         chatid = note.chatid
@@ -548,24 +554,22 @@ async function creator (note) {
     notesModel.create({
         chatid:chatid,
         notename: note.eventName,
-        notedate: `${new Date(date).format(`Y-M-d H:m`)}`,
+        notedate: date,
         type: note.type,
         coop: note.coop,
         coopid: coopid,
         period: JSON.stringify(note.period)
     }).then(async res=>{
         logAdd('Add note ' + JSON.stringify(res))
-        await bot.sendMessage(note.chatid, `Напомню про "${note.eventName}" ${new Date(note.date).format('d.M.Y')} в ${Number(note.hour)-5}:${note.min}`)
+        let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
+        date = new Date(date).setHours(new Date(date).getHours()-5)
+        note.hour = new Date(date).getHours()
+        await bot.sendMessage(note.chatid, `Напомню про "${note.eventName}" ${new Date(note.date).format('d.M.Y')} в ${Number(note.hour)}:${note.min}`)
         await bot.sendMessage(note.chatid, 'Вернулись в главное меню', await mainmenuBtnCreate(note.chatid))
     }).catch(err=>{
-        logAdd('Add note ' + JSON.stringify(res, null, '\t'))
-        usersModel.findAll({where:{isadmin: true}}).then(res=>{
-            for (i=0; i<res.length; i++){
-                bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
-                
-            }
-            bot.sendMessage(note.chatid, "Произошла ошибка, уведомление не создано, попробуй еще раз позже.")
-        })
+        logAdd('Add note err' + err)
+        bot.sendMessage(902064437, "Йо тут ошибка " + err);
+        bot.sendMessage(note.chatid, "Произошла ошибка, уведомление не создано, попробуй еще раз позже.")
     })
 }
 
@@ -593,6 +597,10 @@ async function updater (note) {
         bot.deleteMessage(note.chatid, note.message)
         bot.sendMessage(note.chatid, 'Уведомление отредактировано.',back)
         logAdd(`updated note ${res} \n ${JSON.stringify(note, null, '\t')}`)
+    }).catch(err=>{
+        logAdd('Add note err' + err)
+        bot.sendMessage(902064437, "Йо тут ошибка " + err);
+        bot.sendMessage(note.chatid, "Произошла ошибка, уведомление не создано, попробуй еще раз позже.")
     })
     
 }
