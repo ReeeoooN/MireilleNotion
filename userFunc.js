@@ -83,6 +83,8 @@ async function userHour(chatid, replace, name, username) {
                             let notesArr = await notesModel.findAll({where:{chatid: chatid}, raw:true})
                             for (i=0; i<notesArr.length; i++){
                                 let notesDate = new Date (notesArr[i].notedate).setHours(new Date (notesArr[i].notedate).getHours()-usersData.timediff)
+                                logAdd(new Date (notesDate))
+                                logAdd(new Date (notesArr[i].notedate))
                                 notesModel.update({notedate: new Date(notesDate).format('Y-M-d H:m:S')}, {where: {id: notesArr[i].id}})
                             }
                             bot.editMessageText('Спасибо, данные изменил', {chat_id: note.chatid, message_id: note.message})

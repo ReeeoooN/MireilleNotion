@@ -5,6 +5,7 @@ const format = require('node.date-time');
 const { delBtnCreator } = require('./coopFunc')
 const { usersModel, notesModel, chatModel } = require("./bd");
 const { logAdd } = require("./logFunc");
+const { where } = require("sequelize");
 
 function monthBuilder(month, year) {
     let nextmonth;
@@ -71,20 +72,33 @@ function monthBuilder(month, year) {
 }
 
 async function preCreator(note){
+    console.log(note);
     if (note.stade == "giveParam") {
         selectType(note)
     } else if (note.stade == 'giveName') {
-        selectName(note)
+        if (note.eventName == null) {
+            selectName(note)
+        } else {
+            note.stade = 'giveDate'
+            preCreator(note)
+        }
     } else if (note.stade == 'giveDate') {
-        if (note.date == 0) {
+        if (note.date == null) {
             selectDate(note)
-        } else if (note.hour == 0) {
+        } else if (note.hour == null) {
             selectHour(note)
-        } else if (note.min == 0) {
+        } else if (note.min == null) {
             selectMin(note)
+        } else {
+            note.stade = 'create'
+            preCreator(note)
         }
     } else if (note.stade == 'create') {
-        creator(note)
+        if (note.id == null) {
+            creator(note)
+        } else {
+            updater(note)
+        }
     }
 }
 
@@ -93,7 +107,9 @@ async function selectType(note) {
         if (msg.message.chat.id == note.chatid) {
             if (msg.data == 'simplenote') {
                 note.type = 'simple'
-                note.date = 0
+                if (note.id == null) {
+                    note.date = null
+                }
                 bot.editMessageReplyMarkup(await notePreCrBtn(note), {chat_id:note.chatid, message_id:note.message})
             } else if (msg.data == 'ednote') {
                 note.type = 'ed'
@@ -130,7 +146,6 @@ async function selectType(note) {
             } else if (msg.data == 'notedone') {
                 bot.removeListener('callback_query', typeBuilder)
                 note.stade = 'giveName'
-                logAdd(JSON.stringify(note, null, '\t'))
                 preCreator(note)
             } else {
                 bot.editMessageText('Вернулись в главное меню', {chat_id:note.chatid, message_id:note.message})
@@ -282,6 +297,7 @@ async function selectName(note){
                         bot.removeListener('callback_query', nameConfirm)
                         bot.deleteMessage(note.chatid, note.message)
                         note.stade = 'giveParam'
+                        note.eventName = null
                         preCreator(note)
                     }
                 }
@@ -304,7 +320,7 @@ async function selectDate (note) {
     )}
     async function addDate(msg){
         if (msg.message.chat.id==note.chatid) {
-            if (msg.date != 'dick') {
+            if (msg.data != 'dick') {
                 if (msg.data !== 'backmonth' && msg.data !== 'nextmonth' && msg.data !== 'back') {
                     bot.removeListener('callback_query', addDate)
                     note.date = msg.data
@@ -329,6 +345,7 @@ async function selectDate (note) {
                     btn = monthBuilder(month, year)
                     bot.editMessageReplyMarkup(btn, {chat_id: note.chatid, message_id: note.message})
                 } else if (msg.data == 'back'){
+                    bot.removeListener('callback_query', addDate)
                     note.stade = 'giveParam'
                     bot.deleteMessage(note.chatid,note.message)
                     preCreator(note)
@@ -343,7 +360,7 @@ async function selectDate (note) {
 async function selectHour (note) {
     async function addHour(msg){
         if (msg.message.chat.id==note.chatid) {
-            if (msg.date != 'dick') {
+            if (msg.data != 'dick') {
                 if (msg.data !== "hourback" && msg.data !== 'hournext' && msg.data !== 'back') {
                     bot.removeListener('callback_query', addHour)
                     note.hour = msg.data
@@ -393,7 +410,7 @@ async function selectHour (note) {
                     if (note.type == 'ed') {
                         note.stade = 'giveParam'
                     } else {
-                        note.date = 0
+                        note.date = null
                     }
                     bot.deleteMessage(note.chatid,note.message)
                     preCreator(note)
@@ -415,7 +432,7 @@ async function selectHour (note) {
 async function selectMin (note) {
     async function addMin(msg){
         if (msg.message.chat.id==note.chatid) {
-            if (msg.date != 'dick') {
+            if (msg.data != 'dick') {
                 if (msg.data !== "minback" && msg.data !== 'minnext' && msg.data !== 'back' && msg.data != 'minhandmode') {
                     bot.removeListener('callback_query', addMin)
                     note.min = msg.data
@@ -432,6 +449,7 @@ async function selectMin (note) {
                         }
                     }
                     note.stade = 'create'
+                    note.hour = Number(note.hour) + 5
                     bot.deleteMessage(note.chatid, note.message)
                     preCreator(note)
                 } else if (msg.data === "minback") {
@@ -470,7 +488,7 @@ async function selectMin (note) {
                     bot.editMessageReplyMarkup(btn, {chat_id: note.chatid, message_id: note.message})
                 } else if (msg.data === "back") {
                     bot.removeListener('callback_query', addMin)
-                    note.hour = 0
+                    note.hour = null
                     let newBtn = [[{text: `${new Date(note.date).format('d.M.Y')}`, callback_data: 'dick' }]]
                     for (i=0; i<getHour.length; i++){
                         newBtn.push(getHour[i])
@@ -518,54 +536,65 @@ async function selectMin (note) {
 async function creator (note) {
     let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
     let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
-    date = new Date(date).setHours(new Date(date).getHours()-user.timediff+5)
+    date = new Date(date).setHours(new Date(date).getHours()-user.timediff)
+    let chatid, coopid
     if (note.coop == false) {
-        notesModel.create({
-            chatid:note.chatid,
-            notename: note.eventName,
-            notedate: `${new Date(date).format(`Y-M-d H:m`)}`,
-            type: note.type,
-            coop: note.coop,
-            coopid: 0,
-            period: JSON.stringify(note.period)
-        }).then(async res=>{
-            logAdd('Add note ' + JSON.stringify(res))
-            await bot.sendMessage(note.chatid, `Напомню про "${note.eventName}" ${new Date(note.date).format('d.M.Y')} в ${note.hour}:${note.min}`)
-            await bot.sendMessage(note.chatid, 'Вернулись в главное меню', await mainmenuBtnCreate(note.chatid))
-        }).catch(err=>{
-            logAdd("Error - " + err);
-            usersModel.findAll({where:{isadmin: true}}).then(res=>{
-                for (i=0; i<res.length; i++){
-                    bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
-                    
-                }
-                bot.sendMessage(note.chatid, "Произошла ошибка, уведомление не создано, попробуй еще раз позже.")
-            })
-        })
+        chatid = note.chatid
+        coopid = 0
     } else {
-        notesModel.create({
-            chatid:note.coopid,
-            notename: note.eventName,
-            notedate: `${new Date(date).format(`Y-M-d H:m`)}`,
-            type: note.type,
-            coop: note.coop,
-            coopid: note.chatid,
-            period: JSON.stringify(note.period)
-        }).then(async res=>{
-            logAdd('Add note ' + JSON.stringify(res))
-            await bot.sendMessage(note.chatid, `Напомню про "${note.eventName}" ${new Date(note.date).format('d.M.Y')} в ${note.hour}:${note.min}`)
-            await bot.sendMessage(note.chatid, 'Вернулись в главное меню', await mainmenuBtnCreate(note.chatid))
-        }).catch(err=>{
-            logAdd("Error add note - " + err);
-            usersModel.findAll({where:{isadmin: true}}).then(res=>{
-                for (i=0; i<res.length; i++){
-                    bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
-                    
-                }
-                bot.sendMessage(note.chatid, "Произошла ошибка, уведомление не создано, попробуй еще раз позже.")
-            })
-        })
+        chatid = note.coopid
+        coopid = note.chatid
     }
+    notesModel.create({
+        chatid:chatid,
+        notename: note.eventName,
+        notedate: `${new Date(date).format(`Y-M-d H:m`)}`,
+        type: note.type,
+        coop: note.coop,
+        coopid: coopid,
+        period: JSON.stringify(note.period)
+    }).then(async res=>{
+        logAdd('Add note ' + JSON.stringify(res))
+        await bot.sendMessage(note.chatid, `Напомню про "${note.eventName}" ${new Date(note.date).format('d.M.Y')} в ${Number(note.hour)-5}:${note.min}`)
+        await bot.sendMessage(note.chatid, 'Вернулись в главное меню', await mainmenuBtnCreate(note.chatid))
+    }).catch(err=>{
+        logAdd('Add note ' + JSON.stringify(res, null, '\t'))
+        usersModel.findAll({where:{isadmin: true}}).then(res=>{
+            for (i=0; i<res.length; i++){
+                bot.sendMessage(res[i].id, "Йо тут ошибка " + err);
+                
+            }
+            bot.sendMessage(note.chatid, "Произошла ошибка, уведомление не создано, попробуй еще раз позже.")
+        })
+    })
+}
+
+async function updater (note) {
+    let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
+    let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
+    date = new Date(date).setHours(new Date(date).getHours()-user.timediff)
+    let chatid, coopid
+    if (note.coop == false) {
+        chatid = note.chatid
+        coopid = 0
+    } else {
+        chatid = note.coopid
+        coopid = note.chatid
+    }
+    notesModel.update({
+        chatid: chatid,
+        notename: note.eventName,
+        notedate: date,
+        type: note.type,
+        period: JSON.stringify(note.period),
+        coop: note.coop,
+        coopid: coopid,
+    }, {where:{id:note.id}}).then(res=>{
+        bot.deleteMessage(note.chatid, note.message)
+        bot.sendMessage(note.chatid, 'Уведомление отредактировано.',back)
+        logAdd(`updated note ${res} \n ${JSON.stringify(note, null, '\t')}`)
+    })
+    
 }
 
 module.exports.preCreator = preCreator

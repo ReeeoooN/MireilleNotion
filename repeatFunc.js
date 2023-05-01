@@ -3,10 +3,8 @@ const { noterepeatModel } = require("./bd");
 const { logAdd } = require("./logFunc");
 
 function stopRepeating (chatid, repeatObj) {
-    noterepeatModel.findOne({where:{noteid:repeatObj.repeatBtn}, raw: true}).then(res=>{
-        bot.editMessageReplyMarkup('', {chat_id: chatid, message_id: res.messageid})
-        noterepeatModel.destroy({where:{id:res.id}})
-    })
+    bot.editMessageReplyMarkup('', {chat_id: chatid, message_id: repeatObj.mess})
+    noterepeatModel.destroy({where:{noteid:repeatObj.repeatBtn}})
     logAdd(`Repeat stop ${JSON.stringify(repeatObj)}`)
 }
 

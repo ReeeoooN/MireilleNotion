@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { usersModel } = require('./bd');
-const { bot } = require('./TelegramAPI');
+const { bot, logBot } = require('./TelegramAPI');
 
 async function logAdd(text) {
     let date = new Date().getDate() + "-" + (new Date().getMonth() + 1) + "-" + new Date().getFullYear()
@@ -10,7 +10,7 @@ async function logAdd(text) {
     }); 
     usersModel.findAll({where:{logon:true}}).then(users=>{
         for (let i = 0; i < users.length; i++) {
-            bot.sendMessage(users[i].id, `${date}${time} ${text}`)            
+            logBot.sendMessage(users[i].id, `${date}${time} ${text}`)            
         }
     })
 }

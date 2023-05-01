@@ -1,16 +1,17 @@
 const { infoMenuBtnCreate, adminbtn, mainmenuBtnCreate, coopNote } = require("./botBtn");
-const { bot } = require("./TelegramAPI");
+const { bot, taskBot } = require("./TelegramAPI");
 const { selectNotes,} = require('./editNoteFunc');
 const {fuck, sorrySend, updateSend, phrase, loging, } = require("./adminFunc")
 const { createChatDB } = require("./messdel");
-const { chatModel, usersModel } = require("./bd");
+const { chatModel, usersModel, notesModel } = require("./bd");
 const { preCreator } = require("./createFunc");
 const { userHour, NameChanger } = require("./userFunc");
 const { userAddFriend, userShowFriend, confirmInvite, coopDeleteFr } = require("./coopFunc")
 const { phraseRand } = require("./dynamicAnswers");
-const { noteSender, repeatSender } = require("./senderFunc");
+const { noteSender, repeatSender, noteReplacer } = require("./senderFunc");
 const { stopRepeating } = require("./repeatFunc");
 const { logAdd } = require("./logFunc");
+const { addTask } = require("./taskBotFunc");
 
 logAdd(`######################## bot start ########################`)
 bot.setMyCommands( [
@@ -66,7 +67,7 @@ bot.on('callback_query', async msg=>{
             }
             if (msg.data == 'noteAdd') {
                 bot.deleteMessage(msg.from.id, msg.message.message_id)
-                note = {chatid: msg.message.chat.id, message:0, coop: false, coopid: null, type: null, period:null, stade: 'giveParam', date: 0, hour: 0, min: 0, eventName: null}
+                note = {id:null, chatid: msg.message.chat.id, message:0, coop: false, coopid: null, type: null, period:null, stade: 'giveParam', date: null, hour: null, min: null, eventName: null}
                 preCreator(note)
             }
             if (msg.data === 'myNote') {
@@ -103,7 +104,7 @@ bot.on('callback_query', async msg=>{
             }
             if (msg.data == 'start') {
                 bot.deleteMessage(msg.from.id, msg.message.message_id)
-                let mess = await bot.sendMessage(msg.message.chat.id, `С возвращением, ${msg.from.first_name}`, await mainmenuBtnCreate(msg.message.chat.id))
+                let mess = await bot.sendMessage(msg.message.chat.id, `С возвращением`, await mainmenuBtnCreate(msg.message.chat.id))
                 createChatDB(msg.message.chat.id, mess.message_id)
             }
             if (msg.data == "adminmenu") {
@@ -195,7 +196,28 @@ bot.on('callback_query', async msg=>{
     
 })
 
+taskBot.on('message', async msg=>{
+    if (msg.text.indexOf('@reontask_bot') != -1) {
+        let taskText = msg.text.replace('@reontask_bot ', '')
+        taskBot.sendMessage(msg.chat.id, taskText, taskBtn)
+    }
+})
+
+taskBot.on('callback_query', async msg=>{
+    console.log(msg);
+    if (msg.data == 'taskadd') {
+        let user = await usersModel.findOne({id:msg.from.id})
+        if (!user) {
+            taskBot.sendMessage(msg.message.chat.id, `${msg.from.first_name}, сначала зарегистрируйся в @reonnotification_bot`)
+        } else {
+            taskBot.editMessageText(`Задачка передана ${msg.from.first_name}`, {chat_id:msg.message.chat.id, message_id:msg.message.message_id})
+            addTask(msg.message.chat.id, msg.from.id, msg.message.text)
+        }
+    }
+    if (msg.data == 'taskclose') {
+        taskBot.editMessageText(':(', {chat_id:msg.message.chat.id, message_id:msg.message.message_id})
+    }
+})
+
 noteSender()
 setInterval(noteSender, 1000)
-repeatSender()
-setInterval(repeatSender, 1000)
