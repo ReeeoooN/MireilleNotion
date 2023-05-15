@@ -1,4 +1,4 @@
-const { confirm, getHour, getTime, back, replyBack, eventRedBtn, mainmenuBtnCreate, notePreCrBtn, periodBtn } = require("./botBtn")
+const { confirm, getHour, getTime, back, eventRedBtn, mainmenuBtnCreate, notePreCrBtn, periodBtn } = require("./botBtn")
 const { createChatDB, deleteBotMessage } = require("./messdel")
 const { bot } = require("./TelegramAPI")
 const format = require('node.date-time');
@@ -449,9 +449,6 @@ async function selectMin (note) {
                         }
                     }
                     note.stade = 'create'
-                    let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
-                    date = new Date(date).setHours(new Date(date).getHours()+5)
-                    note.hour = new Date(date).getHours()
                     bot.deleteMessage(note.chatid, note.message)
                     preCreator(note)
                 } else if (msg.data === "minback") {
@@ -506,7 +503,7 @@ async function selectMin (note) {
                     async function minAdd(msg) {
                         if (msg.text >= 0 && msg.text < 60) {
                             note.min = msg.text
-                            if (note.everyday == true) {
+                            if (note.type == 'ed') {
                                 let noteDate = new Date (note.date)
                                 noteDate = new Date (noteDate).setHours(note.hour)
                                 noteDate = new Date (noteDate).setMinutes(note.min)
@@ -521,9 +518,6 @@ async function selectMin (note) {
                             bot.removeListener('message', minAdd)
                             note.stade = 'create'
                             bot.deleteMessage(note.chatid, note.message)
-                            let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
-                            date = new Date(date).setHours(new Date(date).getHours()+5)
-                            note.hour = new Date(date).getHours()
                             preCreator(note)
                         } else {
                             bot.sendMessage(note.chatid, 'Минуты указал неверно, укажи число от 0 до 59')
@@ -541,8 +535,7 @@ async function selectMin (note) {
 async function creator (note) {
     let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
     let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
-    date = new Date(date).setHours(new Date(date).getHours()-user.timediff)
-    console.log(new Date (date));
+    date = new Date(date).setHours(new Date(date).getHours()-user.timediff+5)
     let chatid, coopid
     if (note.coop == false) {
         chatid = note.chatid
@@ -561,10 +554,7 @@ async function creator (note) {
         period: JSON.stringify(note.period)
     }).then(async res=>{
         logAdd('Add note ' + JSON.stringify(res))
-        let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
-        date = new Date(date).setHours(new Date(date).getHours()-5)
-        note.hour = new Date(date).getHours()
-        await bot.sendMessage(note.chatid, `Напомню про "${note.eventName}" ${new Date(note.date).format('d.M.Y')} в ${Number(note.hour)}:${note.min}`)
+        await bot.sendMessage(note.chatid, `Напомню про "${note.eventName}" ${new Date(note.date).format('d.M.Y')} в ${note.hour}:${note.min}`)
         await bot.sendMessage(note.chatid, 'Вернулись в главное меню', await mainmenuBtnCreate(note.chatid))
     }).catch(err=>{
         logAdd('Add note err' + err)
@@ -576,7 +566,11 @@ async function creator (note) {
 async function updater (note) {
     let user = await usersModel.findOne({where:{id:note.chatid}, raw:true})
     let date = new Date(`${note.date} ${note.hour}:${note.min}:00`)
-    date = new Date(date).setHours(new Date(date).getHours()-user.timediff)
+    if (note.editDate == true) {
+        date = new Date(date).setHours(new Date(date).getHours()-user.timediff+5)
+    } else {
+        date = new Date(date).setHours(new Date(date).getHours()-user.timediff)
+    }
     let chatid, coopid
     if (note.coop == false) {
         chatid = note.chatid

@@ -191,14 +191,7 @@ eventRedBtn = {
 
 }
 
-replyBack = {
-    reply_markup: JSON.stringify( {
-        keyboard: [
-            [{text: 'Назад'}],
-        ],
-        resize_keyboard: true
-    })
-} 
+
 
 confirmBtn = {
     reply_markup: JSON.stringify({
@@ -273,7 +266,6 @@ module.exports.getHourfored = getHourfored
 module.exports.back = back
 module.exports.confirm = confirmBtn
 module.exports.getTime = getTime
-module.exports.replyBack = replyBack
 module.exports.adminbtn = adminbtn
 module.exports.mainmenuBtnCreate = mainmenuBtnCreate
 module.exports.friendBtn = friendBtn

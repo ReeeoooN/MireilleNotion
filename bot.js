@@ -196,28 +196,29 @@ bot.on('callback_query', async msg=>{
     
 })
 
-taskBot.on('message', async msg=>{
-    if (msg.text.indexOf('@reontask_bot') != -1) {
-        let taskText = msg.text.replace('@reontask_bot ', '')
-        taskBot.sendMessage(msg.chat.id, taskText, taskBtn)
-    }
-})
+//taskBot.on('message', async msg=>{
+    //let taskText = msg.text
+   // if (taskText.indexOf('@reontask_bot') != -1) {
+   ///     taskText = taskText.replace('@reontask_bot ', '')
+    //    taskBot.sendMessage(msg.chat.id, taskText, taskBtn)
+   // }
+//})
 
-taskBot.on('callback_query', async msg=>{
-    console.log(msg);
-    if (msg.data == 'taskadd') {
-        let user = await usersModel.findOne({id:msg.from.id})
-        if (!user) {
-            taskBot.sendMessage(msg.message.chat.id, `${msg.from.first_name}, сначала зарегистрируйся в @reonnotification_bot`)
-        } else {
-            taskBot.editMessageText(`Задачка передана ${msg.from.first_name}`, {chat_id:msg.message.chat.id, message_id:msg.message.message_id})
-            addTask(msg.message.chat.id, msg.from.id, msg.message.text)
-        }
-    }
-    if (msg.data == 'taskclose') {
-        taskBot.editMessageText(':(', {chat_id:msg.message.chat.id, message_id:msg.message.message_id})
-    }
-})
+//taskBot.on('callback_query', async msg=>{
+    //console.log(msg);
+    //if (msg.data == 'taskadd') {
+     //   let user = await usersModel.findOne({id:msg.from.id})
+    //    if (!user) {
+    //        taskBot.sendMessage(msg.message.chat.id, `${msg.from.first_name}, сначала зарегистрируйся в @reonnotification_bot`)
+    //    } else {
+     //       taskBot.editMessageText(`Задачка передана ${msg.from.first_name}`, {chat_id:msg.message.chat.id, message_id:msg.message.message_id})
+     //       addTask(msg.message.chat.id, msg.from.id, msg.message.text)
+//      }
+   // }
+   // if (msg.data == 'taskclose') {
+   //     taskBot.editMessageText(':(', {chat_id:msg.message.chat.id, message_id:msg.message.message_id})
+   // }
+//})
 
 noteSender()
 setInterval(noteSender, 1000)

@@ -1,4 +1,4 @@
-const { confirm, getHour, getTime, back, replyBack, eventRedBtn, mainmenuBtnCreate } = require("./botBtn")
+const { confirm, getHour, getTime, back, eventRedBtn, mainmenuBtnCreate } = require("./botBtn")
 const { createChatDB, deleteBotMessage } = require("./messdel")
 const { bot } = require("./TelegramAPI")
 const format = require('node.date-time');
@@ -137,7 +137,8 @@ async function editNote(noteid, chatid) {
                             date: new Date(res.notedate).format(`Y-M-d`), 
                             hour: new Date(res.notedate).getHours(), 
                             min: new Date(res.notedate).getMinutes(), 
-                            eventName: res.notename
+                            eventName: res.notename,
+                            editDate: false
                         }
                         preCreator(note)
                     }
@@ -154,7 +155,8 @@ async function editNote(noteid, chatid) {
                             date: new Date(res.notedate).format(`Y-M-d`), 
                             hour: new Date(res.notedate).getHours(), 
                             min: new Date(res.notedate).getMinutes(), 
-                            eventName: null
+                            eventName: null,
+                            editDate: false
                         }
                         preCreator(note)
                     }
@@ -174,7 +176,8 @@ async function editNote(noteid, chatid) {
                                 date: new Date(res.notedate).format(`Y-M-d`), 
                                 hour: null, 
                                 min: null, 
-                                eventName: res.eventName
+                                eventName: res.eventName,
+                                editDate: true
                             }
                         } else {
                             note = {
@@ -189,7 +192,8 @@ async function editNote(noteid, chatid) {
                                 date: null, 
                                 hour: null, 
                                 min: null, 
-                                eventName: res.eventName
+                                eventName: res.eventName,
+                                editDate: true
                             }
                         }
                         preCreator(note)
